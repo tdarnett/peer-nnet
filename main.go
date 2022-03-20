@@ -51,7 +51,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	service := NewService(h, protocol.ID(config.ProtocolID))
+	// connect to database
+	db := InitStore(h.ID().Pretty())
+	defer db.Close()
+
+	service := NewService(h, protocol.ID(config.ProtocolID), db)
 	err = service.SetupRPC()
 	if err != nil {
 		log.Fatal(err)
