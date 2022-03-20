@@ -1,6 +1,8 @@
 package main
 
-import "context"
+import (
+	"context"
+)
 
 const (
 	EchoService         = "EchoRPCAPI"
@@ -13,6 +15,7 @@ type EchoRPCAPI struct {
 
 type Envelope struct {
 	Message string
+	NNet    NeuralNet
 }
 
 func (r *EchoRPCAPI) Echo(ctx context.Context, in Envelope, out *Envelope) error {

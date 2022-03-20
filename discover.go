@@ -33,11 +33,13 @@ func Discover(ctx context.Context, h host.Host, dht *dht.IpfsDHT, rendezvous str
 			}
 
 			for _, p := range peers {
+				// filter out itself
 				if p.ID == h.ID() {
 					continue
 				}
 				if h.Network().Connectedness(p.ID) != network.Connected {
 					_, err = h.Network().DialPeer(ctx, p.ID)
+					// TODO handle errors
 					fmt.Printf("Connected to peer %s\n", p.ID.Pretty())
 					if err != nil {
 						continue
