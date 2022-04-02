@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/host"
@@ -33,10 +35,10 @@ func NewService(host host.Host, protocol protocol.ID, store gokv.Store) *Service
 }
 
 func (s *Service) SetupRPC() error {
-	echoRPCAPI := EchoRPCAPI{service: s}
+	nnetRPCAPI := NNetRPCAPI{service: s}
 
 	s.rpcServer = rpc.NewServer(s.host, s.protocol)
-	err := s.rpcServer.Register(&echoRPCAPI)
+	err := s.rpcServer.Register(&nnetRPCAPI)
 	if err != nil {
 		return err
 	}
@@ -46,45 +48,59 @@ func (s *Service) SetupRPC() error {
 }
 
 func (s *Service) StartMessaging(ctx context.Context) {
-	ticker := time.NewTicker(time.Second * 1)
-	defer ticker.Stop()
+	requestVersionTicker := time.NewTicker(time.Second * 1)
+	defer requestVersionTicker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker.C:
+		case <-requestVersionTicker.C:
 			// ping available peers every second. Note this uses a different ticket than the dicover peers algo
 			s.counter++
-			s.Echo(fmt.Sprintf("Message from %s: What's your model version?", s.host.ID().Pretty()))
+			s.RequestVersions(fmt.Sprintf("Message from %s: What's your model version?", s.host.ID().Pretty()))
 		}
 	}
 }
 
-func (s *Service) Echo(message string) {
+func (s *Service) RequestVersions(message string) {
 	peers := FilterSelf(s.host.Peerstore().Peers(), s.host.ID())
-	var replies = make([]*Envelope, len(peers))
+	var replies = make([]*ModelVersionContext, len(peers))
 
 	errs := s.rpcClient.MultiCall(
 		Ctxts(len(peers)),
 		peers,
-		EchoService,
-		EchoServiceFuncEcho,
-		Envelope{Message: message},
-		CopyEnvelopesToIfaces(replies),
+		NNetService,
+		NNetFuncRequestVersion,
+		ModelVersionContext{},
+		CopyRequestVersionToIfaces(replies),
 	)
 
+	var peersWithNewVersions peer.IDSlice
 	for i, err := range errs {
+		peerId := peers[i].Pretty()
 		if err != nil {
 			fmt.Printf("Peer %s returned error: %-v\n", peers[i].Pretty(), err)
 		} else {
-			fmt.Printf("Peer %s echoed: %+v\n", peers[i].Pretty(), replies[i].NNet)
+			incomingPeerVersion := replies[i].NNet.version
+			fmt.Printf("Peer %s echoed: %+v\n", peerId, replies[i].NNet)
+			// compare received version against what the service has internally
+			isNewVersion := s.IsNewPeerWeightVersion(peerId, incomingPeerVersion)
+			if isNewVersion {
+				fmt.Printf("Found new version for Peer: %s. Requesting weights...\n", peerId)
+				peersWithNewVersions = append(peersWithNewVersions, peers[i])
+				s.UpdatePeerVersion(peerId, incomingPeerVersion)
+			}
 		}
+	}
+	// bulk send weight requests
+	if len(peersWithNewVersions) > 0 {
+		s.RequestModelWeightForPeers(peersWithNewVersions)
 	}
 }
 
-func (s *Service) ReceiveEcho(envelope Envelope) Envelope {
-	// check envelop for incoming model version
+func (s *Service) ReceiveRequestVersion(requestContext ModelVersionContext) ModelVersionContext {
+	// Currently we do not read incoming request contents
 	currentModel := new(NeuralNet)
 	_, err := s.store.Get(s.hostID, currentModel)
 
@@ -92,9 +108,74 @@ func (s *Service) ReceiveEcho(envelope Envelope) Envelope {
 		log.Fatal(err)
 	}
 
-	return Envelope{
-		Message: fmt.Sprintf("Peer %s: %s", s.host.ID(), envelope.Message),
-		NNet:    *currentModel,
+	return ModelVersionContext{
+		Timestamp: time.Now(),
+		NNet:      *currentModel,
+	}
+}
+
+func (s *Service) RequestModelWeightForPeers(peers peer.IDSlice) {
+	var replies = make([]*ModelWeightsContext, len(peers))
+
+	errs := s.rpcClient.MultiCall(
+		Ctxts(len(peers)),
+		peers,
+		NNetService,
+		NNetFuncRequestModelWeight,
+		ModelWeightsContext{},
+		CopyRequestWeightsToIfaces(replies),
+	)
+
+	for i, err := range errs {
+		peerID := peers[i].Pretty()
+		if err != nil {
+			fmt.Printf("Peer %s returned error: %-v\n", peerID, err)
+		} else {
+			// create filepath for peer weights
+			filename := fmt.Sprintf("%s.h5", peerID)
+			peerFilepath := filepath.Join(".", WEIGHTS_DIR, filename)
+			WriteFile(peerFilepath, replies[i].Weights)
+			fmt.Printf("Peer %s sent their weights. They were saved to: %s\n", filename, peerFilepath)
+		}
+	}
+}
+
+// Returns the current model's weights. Assumes no bad actors.
+func (s *Service) ReceiveRequestModelWeight(requestContext ModelWeightsContext) ModelWeightsContext {
+	// read weights from file and serialize into context struct
+	weightFile := filepath.Join(".", "fixtures", "example-weight.h5") // TODO convert to const
+	data, err := os.ReadFile(weightFile)
+	if err != nil {
+		panic(err)
+	}
+	return ModelWeightsContext{
+		Timestamp: time.Now(),
+		Weights:   data,
+	}
+}
+
+// Determines if an incoming peer nnet is new to receiving service or not
+func (s *Service) IsNewPeerWeightVersion(peerID string, incomingVersion int) bool {
+	peerModel := new(NeuralNet)
+	found, err := s.store.Get(peerID, peerModel)
+	if err != nil {
+		panic(err)
+	}
+	isNew := !found
+
+	if found {
+		isNew = peerModel.version < incomingVersion
+	}
+
+	fmt.Printf("Peer: %s. IsNew: %t\n", peerID, isNew)
+
+	return isNew
+}
+
+func (s *Service) UpdatePeerVersion(peerID string, modelVersion int) {
+	err := s.store.Set(peerID, NeuralNet{version: modelVersion})
+	if err != nil {
+		panic(err)
 	}
 }
 
@@ -116,10 +197,19 @@ func Ctxts(n int) []context.Context {
 	return ctxs
 }
 
-func CopyEnvelopesToIfaces(in []*Envelope) []interface{} {
+func CopyRequestVersionToIfaces(in []*ModelVersionContext) []interface{} {
 	ifaces := make([]interface{}, len(in))
 	for i := range in {
-		in[i] = &Envelope{}
+		in[i] = &ModelVersionContext{}
+		ifaces[i] = in[i]
+	}
+	return ifaces
+}
+
+func CopyRequestWeightsToIfaces(in []*ModelWeightsContext) []interface{} {
+	ifaces := make([]interface{}, len(in))
+	for i := range in {
+		in[i] = &ModelWeightsContext{}
 		ifaces[i] = in[i]
 	}
 	return ifaces

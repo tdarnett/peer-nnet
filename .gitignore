@@ -22,5 +22,4 @@ go.work
 
 peer-nnet
 
-bbolt.db
-databases/
+peers/
