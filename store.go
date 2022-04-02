@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
 	"path/filepath"
 
 	"github.com/philippgille/gokv"
@@ -11,16 +10,16 @@ import (
 	"github.com/philippgille/gokv/encoding"
 )
 
-const DB_DIR = "databases/"
+const DB_DIR = "peers/databases/"
+const WEIGHTS_DIR = "peers/weights/"
 
 func InitStore(hostID string) gokv.Store {
-	// create db directory
+	// create db and weights directory
 	dbDir := filepath.Join(".", DB_DIR)
-	err := os.MkdirAll(dbDir, os.ModePerm)
+	weightsDir := filepath.Join(".", WEIGHTS_DIR)
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	MkDir(dbDir)
+	MkDir(weightsDir)
 
 	dbPath := fmt.Sprintf("%s/%s.db", dbDir, hostID)
 	dbOptions := bbolt.Options{

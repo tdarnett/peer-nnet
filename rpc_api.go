@@ -2,24 +2,37 @@ package main
 
 import (
 	"context"
+	"time"
 )
 
 const (
-	EchoService         = "EchoRPCAPI"
-	EchoServiceFuncEcho = "Echo"
+	NNetService                = "NNetRPCAPI"
+	NNetFuncRequestVersion     = "RequestVersion"
+	NNetFuncRequestModelWeight = "RequestModelWeight"
 )
 
-type EchoRPCAPI struct {
+type NNetRPCAPI struct {
 	service *Service
 }
 
-type Envelope struct {
-	Message string
-	NNet    NeuralNet
+type ModelVersionContext struct {
+	Timestamp time.Time
+	NNet      NeuralNet
 }
 
-func (r *EchoRPCAPI) Echo(ctx context.Context, in Envelope, out *Envelope) error {
+type ModelWeightsContext struct {
+	Timestamp time.Time
+	Weights   []byte // hold h5 filetype. Push to ipfs?
+}
+
+func (r *NNetRPCAPI) RequestVersion(ctx context.Context, in ModelVersionContext, out *ModelVersionContext) error {
 	// RPC method
-	*out = r.service.ReceiveEcho(in)
+	*out = r.service.ReceiveRequestVersion(in)
+	return nil
+}
+
+func (r *NNetRPCAPI) RequestModelWeight(ctx context.Context, in ModelWeightsContext, out *ModelWeightsContext) error {
+	// RPC method
+	*out = r.service.ReceiveRequestModelWeight(in)
 	return nil
 }
