@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"path/filepath"
 
 	"github.com/philippgille/gokv"
@@ -13,13 +12,19 @@ import (
 const DB_DIR = "peers/databases/"
 const WEIGHTS_DIR = "peers/weights/"
 
-func InitStore(hostID string) gokv.Store {
+func InitStore(hostID string) (gokv.Store, error) {
 	// create db and weights directory
 	dbDir := filepath.Join(".", DB_DIR)
 	weightsDir := filepath.Join(".", WEIGHTS_DIR)
 
-	MkDir(dbDir)
-	MkDir(weightsDir)
+	err := MkDir(dbDir)
+	if err != nil {
+		return nil, err
+	}
+	err = MkDir(weightsDir)
+	if err != nil {
+		return nil, err
+	}
 
 	dbPath := fmt.Sprintf("%s/%s.db", dbDir, hostID)
 	dbOptions := bbolt.Options{
@@ -30,25 +35,25 @@ func InitStore(hostID string) gokv.Store {
 
 	db, err := bbolt.NewStore(dbOptions)
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("failed to initialize db: %s", err)
 	}
 
 	// db has been previously initialized if host's ID is present
 	hostNeuralNet := new(NeuralNet)
 	found, err := db.Get(hostID, hostNeuralNet)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to lookup host ID %s: %s", hostID, err)
 	}
 	if !found {
-		fmt.Printf("No previous store found for host %s. Initializing...", hostID)
+		fmt.Printf("No previous store found for host %s. Initializing...\n", hostID)
 		err := db.Set(hostID, NeuralNet{version: 0})
 		if err != nil {
-			panic(err)
+			return nil, fmt.Errorf("failed to update version for host %s: %s", hostID, err)
 		}
 
 	} else {
-		fmt.Printf("hostnnet: %+v", *hostNeuralNet)
+		fmt.Printf("hostnnet: %+v\n", *hostNeuralNet)
 	}
 
-	return db
+	return db, nil
 }

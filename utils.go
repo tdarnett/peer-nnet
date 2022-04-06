@@ -3,29 +3,30 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 )
 
-func WriteFile(path string, data []byte) {
+func WriteFile(path string, data []byte) error {
 	f, err := os.Create(path)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer f.Close()
 
 	w := bufio.NewWriter(f)
 	numBytes, err := w.Write(data)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	fmt.Printf("wrote %d bytes\n", numBytes)
+	return nil
 }
 
-func MkDir(path string) {
+func MkDir(path string) error {
 	err := os.MkdirAll(path, os.ModePerm)
 
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+	return nil
 }

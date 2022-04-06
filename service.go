@@ -21,7 +21,6 @@ type Service struct {
 	host      host.Host
 	hostID    string
 	protocol  protocol.ID
-	counter   int
 	store     gokv.Store
 }
 
@@ -56,14 +55,12 @@ func (s *Service) StartMessaging(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-requestVersionTicker.C:
-			// ping available peers every second. Note this uses a different ticket than the dicover peers algo
-			s.counter++
-			s.RequestVersions(fmt.Sprintf("Message from %s: What's your model version?", s.host.ID().Pretty()))
+			s.RequestVersions()
 		}
 	}
 }
 
-func (s *Service) RequestVersions(message string) {
+func (s *Service) RequestVersions() {
 	peers := FilterSelf(s.host.Peerstore().Peers(), s.host.ID())
 	var replies = make([]*ModelVersionContext, len(peers))
 
@@ -78,24 +75,27 @@ func (s *Service) RequestVersions(message string) {
 
 	var peersWithNewVersions peer.IDSlice
 	for i, err := range errs {
-		peerId := peers[i].Pretty()
+		peerID := peers[i].Pretty()
 		if err != nil {
 			fmt.Printf("Peer %s returned error: %-v\n", peers[i].Pretty(), err)
 		} else {
 			incomingPeerVersion := replies[i].NNet.version
-			fmt.Printf("Peer %s echoed: %+v\n", peerId, replies[i].NNet)
+			fmt.Printf("Peer %s echoed: %+v\n", peerID, replies[i].NNet)
 			// compare received version against what the service has internally
-			isNewVersion := s.IsNewPeerWeightVersion(peerId, incomingPeerVersion)
+			isNewVersion, err := s.isNewPeerModelVersion(peerID, incomingPeerVersion)
+			if err != nil {
+				fmt.Print(err) // log the failure but don't suspend execution
+			}
 			if isNewVersion {
-				fmt.Printf("Found new version for Peer: %s. Requesting weights...\n", peerId)
+				fmt.Printf("Found new version for Peer: %s. Requesting weights...\n", peerID)
 				peersWithNewVersions = append(peersWithNewVersions, peers[i])
-				s.UpdatePeerVersion(peerId, incomingPeerVersion)
+				s.updatePeerModelVersion(peerID, incomingPeerVersion)
 			}
 		}
 	}
 	// bulk send weight requests
 	if len(peersWithNewVersions) > 0 {
-		s.RequestModelWeightForPeers(peersWithNewVersions)
+		s.RequestModelWeights(peersWithNewVersions)
 	}
 }
 
@@ -114,7 +114,7 @@ func (s *Service) ReceiveRequestVersion(requestContext ModelVersionContext) Mode
 	}
 }
 
-func (s *Service) RequestModelWeightForPeers(peers peer.IDSlice) {
+func (s *Service) RequestModelWeights(peers peer.IDSlice) {
 	var replies = make([]*ModelWeightsContext, len(peers))
 
 	errs := s.rpcClient.MultiCall(
@@ -134,7 +134,10 @@ func (s *Service) RequestModelWeightForPeers(peers peer.IDSlice) {
 			// create filepath for peer weights
 			filename := fmt.Sprintf("%s.h5", peerID)
 			peerFilepath := filepath.Join(".", WEIGHTS_DIR, filename)
-			WriteFile(peerFilepath, replies[i].Weights)
+			err = WriteFile(peerFilepath, replies[i].Weights)
+			if err != nil {
+				fmt.Printf("unexpected file error: %s\n", err) // fail silently
+			}
 			fmt.Printf("Peer %s sent their weights. They were saved to: %s\n", filename, peerFilepath)
 		}
 	}
@@ -155,11 +158,11 @@ func (s *Service) ReceiveRequestModelWeight(requestContext ModelWeightsContext) 
 }
 
 // Determines if an incoming peer nnet is new to receiving service or not
-func (s *Service) IsNewPeerWeightVersion(peerID string, incomingVersion int) bool {
+func (s *Service) isNewPeerModelVersion(peerID string, incomingVersion int) (bool, error) {
 	peerModel := new(NeuralNet)
 	found, err := s.store.Get(peerID, peerModel)
 	if err != nil {
-		panic(err)
+		return false, fmt.Errorf("failed to lookup peer model version from db. Peer %s: %s\n", peerID, err)
 	}
 	isNew := !found
 
@@ -167,16 +170,17 @@ func (s *Service) IsNewPeerWeightVersion(peerID string, incomingVersion int) boo
 		isNew = peerModel.version < incomingVersion
 	}
 
-	fmt.Printf("Peer: %s. IsNew: %t\n", peerID, isNew)
+	fmt.Printf("Peer: %s. IsNew: %t\n", peerID, isNew) // TODO remove
 
-	return isNew
+	return isNew, nil
 }
 
-func (s *Service) UpdatePeerVersion(peerID string, modelVersion int) {
+func (s *Service) updatePeerModelVersion(peerID string, modelVersion int) error {
 	err := s.store.Set(peerID, NeuralNet{version: modelVersion})
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("unable to set peer %s model version to %d: %s", peerID, modelVersion, err)
 	}
+	return nil
 }
 
 func FilterSelf(peers peer.IDSlice, self peer.ID) peer.IDSlice {
