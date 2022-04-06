@@ -65,12 +65,12 @@ func (s *Service) RequestVersions() {
 	var replies = make([]*ModelVersionContext, len(peers))
 
 	errs := s.rpcClient.MultiCall(
-		Ctxts(len(peers)),
+		ctxts(len(peers)),
 		peers,
 		NNetService,
 		NNetFuncRequestVersion,
 		ModelVersionContext{},
-		CopyRequestVersionToIfaces(replies),
+		copyRequestVersionToIfaces(replies),
 	)
 
 	var peersWithNewVersions peer.IDSlice
@@ -118,28 +118,30 @@ func (s *Service) RequestModelWeights(peers peer.IDSlice) {
 	var replies = make([]*ModelWeightsContext, len(peers))
 
 	errs := s.rpcClient.MultiCall(
-		Ctxts(len(peers)),
+		ctxts(len(peers)),
 		peers,
 		NNetService,
 		NNetFuncRequestModelWeight,
 		ModelWeightsContext{},
-		CopyRequestWeightsToIfaces(replies),
+		copyRequestWeightsToIfaces(replies),
 	)
 
 	for i, err := range errs {
 		peerID := peers[i].Pretty()
 		if err != nil {
 			fmt.Printf("Peer %s returned error: %-v\n", peerID, err)
-		} else {
-			// create filepath for peer weights
-			filename := fmt.Sprintf("%s.h5", peerID)
-			peerFilepath := filepath.Join(".", WEIGHTS_DIR, filename)
-			err = WriteFile(peerFilepath, replies[i].Weights)
-			if err != nil {
-				fmt.Printf("unexpected file error: %s\n", err) // fail silently
-			}
-			fmt.Printf("Peer %s sent their weights. They were saved to: %s\n", filename, peerFilepath)
+			continue
 		}
+		// create filepath for peer weights
+		filename := fmt.Sprintf("%s.h5", peerID)
+		peerFilepath := filepath.Join(".", WEIGHTS_DIR, filename)
+		err = WriteFile(peerFilepath, replies[i].Weights)
+		if err != nil {
+			fmt.Printf("unexpected file error: %s\n", err) // fail silently
+			continue
+		}
+		fmt.Printf("Peer %s sent their weights. They were saved to: %s\n", filename, peerFilepath)
+
 	}
 }
 
@@ -149,7 +151,7 @@ func (s *Service) ReceiveRequestModelWeight(requestContext ModelWeightsContext) 
 	weightFile := filepath.Join(".", "fixtures", "example-weight.h5") // TODO convert to const
 	data, err := os.ReadFile(weightFile)
 	if err != nil {
-		panic(err)
+		log.Fatalf("unable to read model weight file %s: %s", weightFile, err)
 	}
 	return ModelWeightsContext{
 		Timestamp: time.Now(),
@@ -193,7 +195,7 @@ func FilterSelf(peers peer.IDSlice, self peer.ID) peer.IDSlice {
 	return withoutSelf
 }
 
-func Ctxts(n int) []context.Context {
+func ctxts(n int) []context.Context {
 	ctxs := make([]context.Context, n)
 	for i := 0; i < n; i++ {
 		ctxs[i] = context.Background()
@@ -201,7 +203,7 @@ func Ctxts(n int) []context.Context {
 	return ctxs
 }
 
-func CopyRequestVersionToIfaces(in []*ModelVersionContext) []interface{} {
+func copyRequestVersionToIfaces(in []*ModelVersionContext) []interface{} {
 	ifaces := make([]interface{}, len(in))
 	for i := range in {
 		in[i] = &ModelVersionContext{}
@@ -210,7 +212,7 @@ func CopyRequestVersionToIfaces(in []*ModelVersionContext) []interface{} {
 	return ifaces
 }
 
-func CopyRequestWeightsToIfaces(in []*ModelWeightsContext) []interface{} {
+func copyRequestWeightsToIfaces(in []*ModelWeightsContext) []interface{} {
 	ifaces := make([]interface{}, len(in))
 	for i := range in {
 		in[i] = &ModelWeightsContext{}
