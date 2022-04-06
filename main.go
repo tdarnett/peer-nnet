@@ -52,7 +52,10 @@ func main() {
 	}
 
 	// connect to database
-	db := InitStore(h.ID().Pretty())
+	db, err:= InitStore(h.ID().Pretty())
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer db.Close()
 
 	service := NewService(h, protocol.ID(config.ProtocolID), db)
