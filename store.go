@@ -46,7 +46,7 @@ func InitStore(hostID string) (gokv.Store, error) {
 	}
 	if !found {
 		fmt.Printf("No previous store found for host %s. Initializing...\n", hostID)
-		err := db.Set(hostID, NeuralNet{version: 0})
+		err := db.Set(hostID, NeuralNet{version: 0, sample_size: 0})
 		if err != nil {
 			return nil, fmt.Errorf("failed to update version for host %s: %s", hostID, err)
 		}

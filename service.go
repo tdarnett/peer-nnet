@@ -79,17 +79,17 @@ func (s *Service) RequestVersions() {
 		if err != nil {
 			fmt.Printf("Peer %s returned error: %-v\n", peers[i].Pretty(), err)
 		} else {
-			incomingPeerVersion := replies[i].NNet.version
+			incomingPeerNNet := replies[i].NNet
 			fmt.Printf("Peer %s echoed: %+v\n", peerID, replies[i].NNet)
 			// compare received version against what the service has internally
-			isNewVersion, err := s.isNewPeerModelVersion(peerID, incomingPeerVersion)
+			isNewVersion, err := s.isNewPeerModelVersion(peerID, incomingPeerNNet.version)
 			if err != nil {
 				fmt.Print(err) // log the failure but don't suspend execution
 			}
 			if isNewVersion {
 				fmt.Printf("Found new version for Peer: %s. Requesting weights...\n", peerID)
 				peersWithNewVersions = append(peersWithNewVersions, peers[i])
-				s.updatePeerModelVersion(peerID, incomingPeerVersion)
+				s.updatePeerModel(peerID, incomingPeerNNet)
 			}
 		}
 	}
@@ -140,8 +140,8 @@ func (s *Service) RequestModelWeights(peers peer.IDSlice) {
 			fmt.Printf("unexpected file error: %s\n", err) // fail silently
 			continue
 		}
+		// TODO save model metadata file
 		fmt.Printf("Peer %s sent their weights. They were saved to: %s\n", filename, peerFilepath)
-
 	}
 }
 
@@ -164,7 +164,7 @@ func (s *Service) isNewPeerModelVersion(peerID string, incomingVersion int) (boo
 	peerModel := new(NeuralNet)
 	found, err := s.store.Get(peerID, peerModel)
 	if err != nil {
-		return false, fmt.Errorf("failed to lookup peer model version from db. Peer %s: %s\n", peerID, err)
+		return false, fmt.Errorf("failed to lookup peer model version from db. Peer %s: %s", peerID, err)
 	}
 	isNew := !found
 
@@ -177,10 +177,10 @@ func (s *Service) isNewPeerModelVersion(peerID string, incomingVersion int) (boo
 	return isNew, nil
 }
 
-func (s *Service) updatePeerModelVersion(peerID string, modelVersion int) error {
-	err := s.store.Set(peerID, NeuralNet{version: modelVersion})
+func (s *Service) updatePeerModel(peerID string, model NeuralNet) error {
+	err := s.store.Set(peerID, model)
 	if err != nil {
-		return fmt.Errorf("unable to set peer %s model version to %d: %s", peerID, modelVersion, err)
+		return fmt.Errorf("unable to set peer %s model version to %d: %s", peerID, model.version, err)
 	}
 	return nil
 }
