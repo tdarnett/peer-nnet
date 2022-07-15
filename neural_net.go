@@ -1,6 +1,6 @@
 package main
 
 type NeuralNet struct {
-	version int
-	sample_size int
+	Version    int `json:"version"`
+	SampleSize int `json:"sample_size"`
 }

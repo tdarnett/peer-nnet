@@ -1,25 +1,12 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
+	"io/ioutil"
 	"os"
 )
 
 func WriteFile(path string, data []byte) error {
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	w := bufio.NewWriter(f)
-	numBytes, err := w.Write(data)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("wrote %d bytes\n", numBytes)
-	return nil
+	return ioutil.WriteFile(path, data, 0644)
 }
 
 func MkDir(path string) error {

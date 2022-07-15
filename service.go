@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -74,20 +75,22 @@ func (s *Service) RequestVersions() {
 	)
 
 	var peersWithNewVersions peer.IDSlice
+
 	for i, err := range errs {
 		peerID := peers[i].Pretty()
 		if err != nil {
 			fmt.Printf("Peer %s returned error: %-v\n", peers[i].Pretty(), err)
 		} else {
-			incomingPeerNNet := replies[i].NNet
-			fmt.Printf("Peer %s echoed: %+v\n", peerID, replies[i].NNet)
+			incomingPeerNNet := replies[i].Model
+			fmt.Printf("Peer %s echoed: %+v\n", peerID, replies[i].Model)
+
 			// compare received version against what the service has internally
-			isNewVersion, err := s.isNewPeerModelVersion(peerID, incomingPeerNNet.version)
+			isNewVersion, err := s.isNewPeerModelVersion(peerID, incomingPeerNNet.Version)
 			if err != nil {
 				fmt.Print(err) // log the failure but don't suspend execution
 			}
 			if isNewVersion {
-				fmt.Printf("Found new version for Peer: %s. Requesting weights...\n", peerID)
+				fmt.Printf("Found new version for Peer: %s\n", peerID)
 				peersWithNewVersions = append(peersWithNewVersions, peers[i])
 				s.updatePeerModel(peerID, incomingPeerNNet)
 			}
@@ -101,20 +104,19 @@ func (s *Service) RequestVersions() {
 
 func (s *Service) ReceiveRequestVersion(requestContext ModelVersionContext) ModelVersionContext {
 	// Currently we do not read incoming request contents
-	currentModel := new(NeuralNet)
-	_, err := s.store.Get(s.hostID, currentModel)
-
+	currentModel, err := s.getModel()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	return ModelVersionContext{
 		Timestamp: time.Now(),
-		NNet:      *currentModel,
+		Model:     *currentModel,
 	}
 }
 
 func (s *Service) RequestModelWeights(peers peer.IDSlice) {
+	fmt.Printf("Requesting model weights...")
 	var replies = make([]*ModelWeightsContext, len(peers))
 
 	errs := s.rpcClient.MultiCall(
@@ -132,20 +134,39 @@ func (s *Service) RequestModelWeights(peers peer.IDSlice) {
 			fmt.Printf("Peer %s returned error: %-v\n", peerID, err)
 			continue
 		}
+		peerResponse := replies[i]
+		// create peer directory
+		peerDir := filepath.Join(".", PEER_MODELS_DIR, peerID)
+		MkDir(peerDir)
+		if err != nil {
+			fmt.Printf("error creating peer directory\n")
+			continue
+		}
+
 		// create filepath for peer weights
-		filename := fmt.Sprintf("%s.h5", peerID)
-		peerFilepath := filepath.Join(".", WEIGHTS_DIR, filename)
-		err = WriteFile(peerFilepath, replies[i].Weights)
+		weightsFilepath := filepath.Join(peerDir, "weights.h5")
+		err = WriteFile(weightsFilepath, peerResponse.Weights)
 		if err != nil {
 			fmt.Printf("unexpected file error: %s\n", err) // fail silently
 			continue
 		}
-		// TODO save model metadata file
-		fmt.Printf("Peer %s sent their weights. They were saved to: %s\n", filename, peerFilepath)
+		// create filepath for peer model metadata
+		metadataFilepath := filepath.Join(peerDir, "metadata.json")
+		content, err := json.Marshal(peerResponse.Model) // TODO create a new struct of metadata to include timestamp
+		if err != nil {
+			fmt.Println(err)
+		}
+		err = WriteFile(metadataFilepath, content)
+		if err != nil {
+			fmt.Printf("unexpected file error: %s\n", err) // fail silently
+			continue
+		}
+
+		fmt.Printf("Peer %s sent their weights. They were saved to: %s\n", peerID, peerDir)
 	}
 }
 
-// Returns the current model's weights. Assumes no bad actors.
+// Returns the current model's weights and metadata. Assumes no bad actors.
 func (s *Service) ReceiveRequestModelWeight(requestContext ModelWeightsContext) ModelWeightsContext {
 	// read weights from file and serialize into context struct
 	weightFile := filepath.Join(".", "fixtures", "example-weight.h5") // TODO convert to const
@@ -153,13 +174,18 @@ func (s *Service) ReceiveRequestModelWeight(requestContext ModelWeightsContext) 
 	if err != nil {
 		log.Fatalf("unable to read model weight file %s: %s", weightFile, err)
 	}
+	currentModel, err := s.getModel()
+	if err != nil {
+		log.Fatalf("unable to load model data: %s", err)
+	}
 	return ModelWeightsContext{
 		Timestamp: time.Now(),
+		Model:     *currentModel,
 		Weights:   data,
 	}
 }
 
-// Determines if an incoming peer nnet is new to receiving service or not
+// Determines if an incoming peer model is new to the service (hasn't been seen yet)
 func (s *Service) isNewPeerModelVersion(peerID string, incomingVersion int) (bool, error) {
 	peerModel := new(NeuralNet)
 	found, err := s.store.Get(peerID, peerModel)
@@ -169,7 +195,7 @@ func (s *Service) isNewPeerModelVersion(peerID string, incomingVersion int) (boo
 	isNew := !found
 
 	if found {
-		isNew = peerModel.version < incomingVersion
+		isNew = peerModel.Version < incomingVersion
 	}
 
 	fmt.Printf("Peer: %s. IsNew: %t\n", peerID, isNew) // TODO remove
@@ -177,12 +203,25 @@ func (s *Service) isNewPeerModelVersion(peerID string, incomingVersion int) (boo
 	return isNew, nil
 }
 
+// Updates a provided peer's model information
 func (s *Service) updatePeerModel(peerID string, model NeuralNet) error {
 	err := s.store.Set(peerID, model)
 	if err != nil {
-		return fmt.Errorf("unable to set peer %s model version to %d: %s", peerID, model.version, err)
+		return fmt.Errorf("unable to set peer %s model version to %d: %s", peerID, model.Version, err)
 	}
 	return nil
+}
+
+// Fetches and returns its own model metadata from the DB
+func (s *Service) getModel() (*NeuralNet, error) {
+	currentModel := new(NeuralNet)
+	_, err := s.store.Get(s.hostID, currentModel)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return currentModel, nil
 }
 
 func FilterSelf(peers peer.IDSlice, self peer.ID) peer.IDSlice {

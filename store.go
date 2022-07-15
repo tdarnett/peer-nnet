@@ -10,18 +10,18 @@ import (
 )
 
 const DB_DIR = "peers/databases/"
-const WEIGHTS_DIR = "peers/weights/"
+const PEER_MODELS_DIR = "peers/models/"
 
 func InitStore(hostID string) (gokv.Store, error) {
 	// create db and weights directory
 	dbDir := filepath.Join(".", DB_DIR)
-	weightsDir := filepath.Join(".", WEIGHTS_DIR)
+	peerModelsDir := filepath.Join(".", PEER_MODELS_DIR)
 
 	err := MkDir(dbDir)
 	if err != nil {
 		return nil, err
 	}
-	err = MkDir(weightsDir)
+	err = MkDir(peerModelsDir)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func InitStore(hostID string) (gokv.Store, error) {
 	}
 	if !found {
 		fmt.Printf("No previous store found for host %s. Initializing...\n", hostID)
-		err := db.Set(hostID, NeuralNet{version: 0, sample_size: 0})
+		err := db.Set(hostID, NeuralNet{Version: 0, SampleSize: 0})
 		if err != nil {
 			return nil, fmt.Errorf("failed to update version for host %s: %s", hostID, err)
 		}

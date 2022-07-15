@@ -17,11 +17,12 @@ type NNetRPCAPI struct {
 
 type ModelVersionContext struct {
 	Timestamp time.Time
-	NNet      NeuralNet
+	Model     NeuralNet
 }
 
 type ModelWeightsContext struct {
 	Timestamp time.Time
+	Model     NeuralNet
 	Weights   []byte // hold h5 filetype. Push to ipfs?
 }
 
