@@ -112,7 +112,7 @@ func (s *Service) ReceiveRequestVersion(requestContext ModelVersionContext) Mode
 	}
 
 	return ModelVersionContext{
-		Timestamp: time.Now(),
+		Timestamp: time.Now().Unix(),
 		Model:     *currentModel,
 	}
 }
@@ -156,13 +156,7 @@ func (s *Service) RequestModelWeights(peers peer.IDSlice) {
 		}
 		// create filepath for peer model metadata
 		metadataFilepath := filepath.Join(peerDir, "metadata.json")
-		content, err := json.Marshal(
-			NeuralNetMetadata{
-				Version:          peerResponse.Model.Version,
-				SampleSize:       peerResponse.Model.SampleSize,
-				UpdatedTimestamp: peerResponse.Timestamp,
-			})
-
+		content, err := json.Marshal(peerResponse.Model)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -191,7 +185,7 @@ func (s *Service) ReceiveRequestModelWeight(requestContext ModelWeightsContext) 
 		log.Fatalf("unable to load model data: %s", err)
 	}
 	return ModelWeightsContext{
-		Timestamp: time.Now(),
+		Timestamp: time.Now().Unix(),
 		Model:     *currentModel,
 		Weights:   data,
 	}
