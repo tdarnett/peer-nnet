@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"time"
 )
 
 const (
@@ -16,12 +15,12 @@ type NNetRPCAPI struct {
 }
 
 type ModelVersionContext struct {
-	Timestamp time.Time
+	Timestamp int64
 	Model     NeuralNet
 }
 
 type ModelWeightsContext struct {
-	Timestamp time.Time
+	Timestamp int64
 	Model     NeuralNet
 	Weights   []byte // hold h5 filetype. Push to ipfs?
 }
