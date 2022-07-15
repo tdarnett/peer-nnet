@@ -102,6 +102,8 @@ func (s *Service) RequestVersions() {
 	}
 }
 
+// Returns the host's current model version.
+// Function triggered from inbound model version request
 func (s *Service) ReceiveRequestVersion(requestContext ModelVersionContext) ModelVersionContext {
 	// Currently we do not read incoming request contents
 	currentModel, err := s.getModel()
@@ -119,6 +121,7 @@ func (s *Service) RequestModelWeights(peers peer.IDSlice) {
 	fmt.Printf("Requesting model weights...")
 	var replies = make([]*ModelWeightsContext, len(peers))
 
+	// Multicall will send out the requests AND stream replies
 	errs := s.rpcClient.MultiCall(
 		ctxts(len(peers)),
 		peers,
@@ -128,6 +131,7 @@ func (s *Service) RequestModelWeights(peers peer.IDSlice) {
 		copyRequestWeightsToIfaces(replies),
 	)
 
+	// parse the replies
 	for i, err := range errs {
 		peerID := peers[i].Pretty()
 		if err != nil {
@@ -152,7 +156,13 @@ func (s *Service) RequestModelWeights(peers peer.IDSlice) {
 		}
 		// create filepath for peer model metadata
 		metadataFilepath := filepath.Join(peerDir, "metadata.json")
-		content, err := json.Marshal(peerResponse.Model) // TODO create a new struct of metadata to include timestamp
+		content, err := json.Marshal(
+			NeuralNetMetadata{
+				Version:          peerResponse.Model.Version,
+				SampleSize:       peerResponse.Model.SampleSize,
+				UpdatedTimestamp: peerResponse.Timestamp,
+			})
+
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -166,7 +176,9 @@ func (s *Service) RequestModelWeights(peers peer.IDSlice) {
 	}
 }
 
-// Returns the current model's weights and metadata. Assumes no bad actors.
+// Returns a host's weights and metadata.
+// Function triggered from inbound model weight request.
+// Assumes no bad actors.
 func (s *Service) ReceiveRequestModelWeight(requestContext ModelWeightsContext) ModelWeightsContext {
 	// read weights from file and serialize into context struct
 	weightFile := filepath.Join(".", "fixtures", "example-weight.h5") // TODO convert to const
@@ -212,7 +224,7 @@ func (s *Service) updatePeerModel(peerID string, model NeuralNet) error {
 	return nil
 }
 
-// Fetches and returns its own model metadata from the DB
+// Fetches and returns a hosts own model metadata from the DB
 func (s *Service) getModel() (*NeuralNet, error) {
 	currentModel := new(NeuralNet)
 	_, err := s.store.Get(s.hostID, currentModel)
