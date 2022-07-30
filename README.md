@@ -1,26 +1,48 @@
 # peer-nnet
 
-Lightweight peer-to-peer application _to train a distributed neural network via federated learning `*`_.
+A lightweight peer-to-peer application to train a distributed neural network via federated learning.
 
 The implementation is inspired by [BrainTorrent][].
 
-`*` _in development_
+## Why distributed?
 
-[braintorrent]: https://arxiv.org/pdf/1905.06731.pdf
+Access to sufficient training data to create performant neural networks is challenging within industries with strict privacy requirements. One such example is the medical industry. An individual medical center likely lacks sufficient data to train a model with acceptable performance metrics. However, several medical centers could share their data to form one shared model. In practice, sensitive medical data can't be shared very easily. Federated learning allows various centers to collaborate and construct shared models without compromising sensitive data. By sharing high-level model metadata and learned weights, each node in the network can benefit from the training of other models in the network.
 
-## to run
+## Why p2p?
+
+Typical federated learning approaches depend on a central server that all nodes must trust. By leveraging peer-to-peer technologies, nodes in the network can communicate with each other directly, eliminating the need for a central authority.
+
+## Architecture overview
+
+The network is composed of nodes communicating to one another over TCP.
+
+![network](./assets/network-diag.png)
+
+Each node has its own neural network training process and peer-nnet golang process to handle the networking and state updates between nodes.
+
+![node](./assets/node-diag.png)
+
+Each client maintains its ledger of connected peers and each peer's last model version used during merging. Each node will store the latest version of its connected peers' model weights on disk to share with the neural net training process.
+
+The training algorithm used is directly copied from the [BrainTorrent][] paper:
+
+![training-steps](./assets/training-steps.png)
+
+## To run
+
+The current implentation will not do automatic peer discovery. As such, you must specify the boostrap node ID when booting up a new node.
 
 ```bash
-$ go run . -seed [some seed]
-$ # open a second terminal
-$ go run . -peer [peer address] -seed [some other seed]
+$ go run .
+$ # Copy multi-address, and open a second terminal
+$ go run . -peer [peer address]
 ```
 
-## future ideas
+## Coming soon
 
+- Enable automatic peer discovery using a rendevous point
+- Dockerized application
 - [Collect peer churn data](https://github.com/willscott/ipfs-counter/blob/willscott/churn/main.go) to inform remediation approaches
+- lots more...
 
-## helpful links
-
-- [Flexible mocking for testing in Go](https://medium.com/safetycultureengineering/flexible-mocking-for-testing-in-go-f952869e34f5)
-- [libp2p in go](https://ldej.nl/post/building-an-echo-application-with-libp2p/)
+[braintorrent]: https://arxiv.org/pdf/1905.06731.pdf
