@@ -23,3 +23,12 @@ go.work
 peer-nnet
 
 peers/
+
+# ignore vscode settings
+.vscode/
+
+# ignore notebooks
+*.ipynb
+
+# ignore any cache
+*__pycache__
