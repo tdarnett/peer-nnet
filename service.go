@@ -106,6 +106,7 @@ func (s *Service) RequestVersions() {
 // Function triggered from inbound model version request
 func (s *Service) ReceiveRequestVersion(requestContext ModelVersionContext) ModelVersionContext {
 	// Currently we do not read incoming request contents
+	// TODO read model metadata from model/ path that the ml model training process is writing to
 	currentModel, err := s.getModel()
 	if err != nil {
 		log.Fatal(err)
@@ -175,7 +176,7 @@ func (s *Service) RequestModelWeights(peers peer.IDSlice) {
 // Assumes no bad actors.
 func (s *Service) ReceiveRequestModelWeight(requestContext ModelWeightsContext) ModelWeightsContext {
 	// read weights from file and serialize into context struct
-	weightFile := filepath.Join(".", "fixtures", "example-weight.h5") // TODO convert to const
+	weightFile := filepath.Join(".", "fixtures", "example-weight.h5") // TODO send model/weights.h5
 	data, err := os.ReadFile(weightFile)
 	if err != nil {
 		log.Fatalf("unable to read model weight file %s: %s", weightFile, err)
