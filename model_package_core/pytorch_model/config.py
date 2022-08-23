@@ -51,6 +51,7 @@ MODEL_PATH = os.path.join(BASE_OUTPUT, 'model_weights_updated_weights.h5')
 PLOT_PATH = os.path.sep.join([BASE_OUTPUT, 'plot.png'])
 
 # experimenting with model logic
+# TODO can remove these
 TOTAL_SAMPLES = 960
 METADATA_WEIGHTS = {
     'model_2': {'weights': os.path.join(BASE_OUTPUT, 'model_weights_2.h5'), 'number_of_samples': 320},

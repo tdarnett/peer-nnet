@@ -32,3 +32,5 @@ peers/
 
 # ignore any cache
 *__pycache__
+
+peer_metadata.sqlite

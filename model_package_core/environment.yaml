@@ -12,3 +12,4 @@ dependencies:
     - matplotlib==3.5.2
     - scikit-learn==1.1.2
     - mlxtend==0.20.0
+    - sqlitedict==2.0.0

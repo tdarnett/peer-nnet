@@ -79,8 +79,7 @@ def plot_and_save_training_loss(history: Dict[str, List[float]], plot_path: Path
     plt.savefig(plot_path)
 
 
-if __name__ == '__main__':
-
+def train(metadata_and_weights: dict[str, dict] = config.METADATA_WEIGHTS):
     # create the dataset
     dataset = ProcessedDataset(
         images_path=config.TRAIN_IMAGE_DATA_PATH,
@@ -128,12 +127,14 @@ if __name__ == '__main__':
 
     # load and update existing weights & biases
     if Path(config.MODEL_PATH).exists():
+        total_samples = sum([v['number_of_samples'] for v in metadata_and_weights.values()])
+        total_samples += config.NUMBER_OF_TRAIN_SAMPLES # TODO read from latest model/metadata.json
         model = load_model(
             base_model=model,
             base_model_weights=config.MODEL_PATH,
-            metadata_and_weights=config.METADATA_WEIGHTS,
+            metadata_and_weights=metadata_and_weights,
             total_local_samples=config.NUMBER_OF_TRAIN_SAMPLES,
-            total_samples=config.TOTAL_SAMPLES
+            total_samples=total_samples
         )
 
     # initialize loss function and optimizer
@@ -212,5 +213,11 @@ if __name__ == '__main__':
     # plot the training loss
     plot_and_save_training_loss(history=history, plot_path=config.PLOT_PATH)
 
+    # TODO update so it only saves if the new model is better than it's previous version
     # serialize the model to disk
     torch.save(model.state_dict(), config.MODEL_PATH)
+
+
+if __name__ == '__main__':
+    train()
+
