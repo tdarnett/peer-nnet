@@ -40,7 +40,7 @@ def create_peer_files(id: int, version: int, sample_size: int):
         metadata = {
             'version': version,
             'sample_size': sample_size,
-            'last_updated': time.ctime()
+            'last_updated': int(time.time())
         }
         metadata_string = json.dumps(metadata)
         with open(PEER_MODEL_PATH / METADATA_FILENAME, 'w') as outfile:
