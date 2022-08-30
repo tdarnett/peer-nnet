@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -176,7 +177,7 @@ func (s *Service) RequestModelWeights(peers peer.IDSlice) {
 // Assumes no bad actors.
 func (s *Service) ReceiveRequestModelWeight(requestContext ModelWeightsContext) ModelWeightsContext {
 	// read weights from file and serialize into context struct
-	weightFile := filepath.Join(".", "fixtures", "example-weight.h5") // TODO send model/weights.h5
+	weightFile := filepath.Join(".", "model", "weights.h5")
 	data, err := os.ReadFile(weightFile)
 	if err != nil {
 		log.Fatalf("unable to read model weight file %s: %s", weightFile, err)
@@ -219,16 +220,19 @@ func (s *Service) updatePeerModel(peerID string, model NeuralNet) error {
 	return nil
 }
 
-// Fetches and returns a hosts own model metadata from the DB
+// Fetches and returns a hosts own model metadata from disk
 func (s *Service) getModel() (*NeuralNet, error) {
-	currentModel := new(NeuralNet)
-	_, err := s.store.Get(s.hostID, currentModel)
+	currentModel := NeuralNet{}
+	metadataFile := filepath.Join(".", "model", "metadata.json")
+	file, err := ioutil.ReadFile(metadataFile)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return currentModel, nil
+	json.Unmarshal([]byte(file), &currentModel)
+
+	return &currentModel, nil
 }
 
 func FilterSelf(peers peer.IDSlice, self peer.ID) peer.IDSlice {
