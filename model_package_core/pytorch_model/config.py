@@ -40,20 +40,17 @@ INIT_LR = 0.001
 NUM_EPOCHS = 3
 BATCH_SIZE = 64
 
+# set tolerance and min delta for early stopping
+TOLERANCE = 5
+MIN_DELTA = 0.1
+
 # define the number of samples to plot during model evaluation
 SAMPLES_TO_PLOT = 5
 
 # define the path to the base output directory
-BASE_OUTPUT = os.path.join('model_package_core', 'output')
+BASE_OUTPUT = 'model'
 
-# define the path to the output serialized model and model training plot
-MODEL_PATH = os.path.join(BASE_OUTPUT, 'model_weights_updated_weights.h5')
-PLOT_PATH = os.path.sep.join([BASE_OUTPUT, 'plot.png'])
-
-# experimenting with model logic
-# TODO can remove these
-TOTAL_SAMPLES = 960
-METADATA_WEIGHTS = {
-    'model_2': {'weights': os.path.join(BASE_OUTPUT, 'model_weights_2.h5'), 'number_of_samples': 320},
-    'model_3': {'weights': os.path.join(BASE_OUTPUT, 'model_weights_3.h5'), 'number_of_samples': 320}
-}
+# define the path to the output serialized model, metadata and model training plot
+MODEL_PATH = os.path.join(BASE_OUTPUT, 'weights.h5')
+METADATA_PATH = os.path.join(BASE_OUTPUT, 'metadata.json')
+PLOT_PATH = os.path.join(BASE_OUTPUT, 'plot.png')

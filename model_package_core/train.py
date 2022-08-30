@@ -2,9 +2,13 @@
 # python train.py
 
 # import packages
+
+import json
 import os
 import time
+from importlib.resources import path
 from pathlib import Path
+from types import ModuleType
 from typing import Dict, List
 
 import matplotlib.pyplot as plt
@@ -13,37 +17,35 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 
-from pytorch_model import config
-from pytorch_model.dataset import ProcessedDataset
-from pytorch_model.model import Net
+from .pytorch_model.dataset import ProcessedDataset
+from .pytorch_model.early_stopping import EarlyStopping
+from .pytorch_model.model import Net
 
 
 def load_model(
     base_model: Net,
-    base_model_weights: str,
     metadata_and_weights: Dict[str, Dict],
-    total_local_samples: int,
-    total_samples: int
+    total_samples: int,
+    config: ModuleType
 ) -> Net:
     """Load the latest version of the local host model, and, if applicable, update weights using peer networks.
 
     :param base_model: Model object to update weights on
-    :param base_model_weights: Location of latest available weights for local model
     :param metadata_and_weights: Dictionary containing the metadata and weight files for peer networks
-    :param total_local_samples: Total number of training samples available at local host
     :param total_samples: Total number of training samples used across all incoming peer networks
+    :param config: configuration file
     :return: Model with new weights, ready for training
     """
     # load the weights for the local model
     print('[INFO] Load existing model weights & biases...')
-    base_model.load_state_dict(torch.load(base_model_weights))
+    base_model.load_state_dict(torch.load(config.MODEL_PATH))
 
     # if there are updated weights from peers available
     if metadata_and_weights:
         print('[INFO] Found new model weights & biases. Updating existing parameters...')
         # Update the local model weights
         for p_out in base_model.parameters():
-            p_out.data = torch.nn.Parameter((total_local_samples / total_samples) * p_out)
+            p_out.data = torch.nn.Parameter((config.NUMBER_OF_TRAIN_SAMPLES / total_samples) * p_out)
 
         # instantiate a temporary model object
         temp_model = Net(
@@ -61,7 +63,7 @@ def load_model(
     return base_model
 
 
-def plot_and_save_training_loss(history: Dict[str, List[float]], plot_path: Path):
+def plot_and_save_training_loss(history: Dict[str, List[float]], plot_path: str):
     """Plot and save the training loss.
 
     :param history: dictionary with train and validation loss history
@@ -79,7 +81,33 @@ def plot_and_save_training_loss(history: Dict[str, List[float]], plot_path: Path
     plt.savefig(plot_path)
 
 
-def train(metadata_and_weights: dict[str, dict] = config.METADATA_WEIGHTS):
+def save_metadata(metadata_path: str, number_of_training_samples: int):
+    """Save the metadata from training run in JSON file format.
+
+    :param metadata_path: Path to metadata JSON file
+    :param number_of_training_samples: Number of training samples used to train model
+    """
+    # update model version in metadata
+    if Path(metadata_path).exists():
+        with open(metadata_path, 'r') as metadata_file:
+            metadata_dict = json.load(metadata_file)
+            model_version = metadata_dict['version'] + 1
+    else:
+        # first time a model is being training
+        model_version = 1
+
+    # save metadata
+    metadata_dict = {
+        'version' : model_version,
+        'sample_size' : number_of_training_samples,
+        'last_updated' : time.ctime()
+    }
+    metadata_string = json.dumps(metadata_dict)
+    with open(metadata_path, 'w') as outfile:
+        outfile.write(metadata_string)
+
+
+def train(metadata_and_weights: Dict[str, Dict], config: ModuleType):
     # create the dataset
     dataset = ProcessedDataset(
         images_path=config.TRAIN_IMAGE_DATA_PATH,
@@ -122,24 +150,20 @@ def train(metadata_and_weights: dict[str, dict] = config.METADATA_WEIGHTS):
     model = Net(
         input_size=config.INPUT_SIZE,
         hidden_units=config.HIDDEN_UNITS,
-        number_of_classes=config.NUMBER_OF_CLASSES
+        number_of_classes=config.NUMBER_OF_CLASSES,
+        lr=config.INIT_LR
     ).to(config.DEVICE)
 
     # load and update existing weights & biases
     if Path(config.MODEL_PATH).exists():
         total_samples = sum([v['number_of_samples'] for v in metadata_and_weights.values()])
-        total_samples += config.NUMBER_OF_TRAIN_SAMPLES # TODO read from latest model/metadata.json
+        total_samples += config.NUMBER_OF_TRAIN_SAMPLES
         model = load_model(
             base_model=model,
-            base_model_weights=config.MODEL_PATH,
             metadata_and_weights=metadata_and_weights,
-            total_local_samples=config.NUMBER_OF_TRAIN_SAMPLES,
-            total_samples=total_samples
+            total_samples=total_samples,
+            config=config
         )
-
-    # initialize loss function and optimizer
-    loss_fn = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=config.INIT_LR)
 
     # calculate steps per epoch for training and validation set
     train_steps = len(train_indices) // config.BATCH_SIZE
@@ -147,6 +171,9 @@ def train(metadata_and_weights: dict[str, dict] = config.METADATA_WEIGHTS):
 
     # initialize a dictionary to store training history
     history = {'train_loss': [], 'val_loss': []}
+
+    # instantiate early stopping
+    early_stopping = EarlyStopping(tolerance=config.TOLERANCE, min_delta=config.MIN_DELTA)
 
     # loop over epochs
     print('[INFO] training the network...')
@@ -167,13 +194,13 @@ def train(metadata_and_weights: dict[str, dict] = config.METADATA_WEIGHTS):
 
             # perform a forward pass and calculate the training loss
             pred = model(x_batch.float())
-            loss = loss_fn(pred, y_batch)
+            loss = model.loss_fn(pred, y_batch)
 
             # first, zero out any previously accumulated gradients, then
             # perform backpropagation, and then update model parameters
-            optimizer.zero_grad()
+            model.optimizer.zero_grad()
             loss.backward()
-            optimizer.step()
+            model.optimizer.step()
 
             # add the loss to the total training loss so far
             total_train_loss += loss
@@ -192,7 +219,7 @@ def train(metadata_and_weights: dict[str, dict] = config.METADATA_WEIGHTS):
                 pred = model(x_batch.float())
 
                 # add the loss to the total validation loss so far
-                total_val_loss += loss_fn(pred, y_batch.long())
+                total_val_loss += model.loss_fn(pred, y_batch.long())
 
         # calculate the average training and validation accuracy
         average_train_loss = total_train_loss / train_steps
@@ -206,18 +233,21 @@ def train(metadata_and_weights: dict[str, dict] = config.METADATA_WEIGHTS):
         print('[INFO] EPOCH: {}/{}'.format(epoch + 1, config.NUM_EPOCHS))
         print('Train loss: {:.3f}, Validation loss: {:.3f}'.format(average_train_loss, average_val_loss))
 
+        # early stopping
+        early_stopping(average_train_loss, average_val_loss)
+        if early_stopping.early_stop:
+            print('[INFO] Stopping at Epoch:', epoch + 1)
+            break
+
     # display the total time needed to perform the training
     end_time = time.time()
     print('[INFO] total time taken to train the model: {:.2f}s'.format(end_time - start_time))
 
-    # plot the training loss
-    plot_and_save_training_loss(history=history, plot_path=config.PLOT_PATH)
-
-    # TODO update so it only saves if the new model is better than it's previous version
     # serialize the model to disk
     torch.save(model.state_dict(), config.MODEL_PATH)
 
+    # plot the training loss
+    plot_and_save_training_loss(history=history, plot_path=config.PLOT_PATH)
 
-if __name__ == '__main__':
-    train()
-
+    # save metadata for training run
+    save_metadata(metadata_path=config.METADATA_PATH, number_of_training_samples=config.NUMBER_OF_TRAIN_SAMPLES)
