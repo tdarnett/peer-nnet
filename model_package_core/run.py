@@ -5,14 +5,15 @@ import json
 from pathlib import Path
 
 from sqlitedict import SqliteDict
-from train import train
+
+from pytorch_model import config
+from model_package_core.train import train
 
 # initialize DB
 db = SqliteDict("peer_metadata.sqlite")
 
-
 # parse peer model files and compare the latest versions with internal datastore
-PEER_MODEL_PATH = Path("../peers/models/")
+PEER_MODEL_PATH = Path('./peers/models/')
 WEIGHT_FILENAME = Path('weights.h5')
 METADATA_FILENAME = Path('metadata.json')
 
@@ -38,4 +39,4 @@ for peer_path in PEER_MODEL_PATH.iterdir():
         )
 
 if models_to_train:
-    train(models_to_train)
+    train(metadata_and_weights=models_to_train, config=config)
