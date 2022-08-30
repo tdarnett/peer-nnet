@@ -22,7 +22,10 @@ go.work
 
 peer-nnet
 
+model_package_core/data/
 peers/
+model/
+peer_metadata.sqlite
 
 # ignore vscode settings
 .vscode/
@@ -32,5 +35,3 @@ peers/
 
 # ignore any cache
 *__pycache__
-
-peer_metadata.sqlite
