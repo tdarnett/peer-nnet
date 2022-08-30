@@ -5,7 +5,7 @@ import torch
 
 
 class Net(torch.nn.Module):
-    def __init__(self, input_size, hidden_units, number_of_classes):
+    def __init__(self, input_size, hidden_units, number_of_classes, lr=0.001):
         super(Net, self).__init__()
         # initialize the layer list
         all_layers = []
@@ -17,6 +17,8 @@ class Net(torch.nn.Module):
             input_size = hidden_unit
         all_layers.append(torch.nn.Linear(hidden_units[-1], number_of_classes))
         self.module_list = torch.nn.ModuleList(all_layers)
+        self.loss_fn = torch.nn.CrossEntropyLoss()
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=lr)
 
     def forward(self, x):
         # apply each layer to input
