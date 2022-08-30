@@ -22,7 +22,6 @@ go.work
 
 peer-nnet
 
-model_package_core/data/
 peers/
 model/
 peer_metadata.sqlite
