@@ -100,7 +100,7 @@ def save_metadata(metadata_path: str, number_of_training_samples: int):
     metadata_dict = {
         'version' : model_version,
         'sample_size' : number_of_training_samples,
-        'last_updated' : time.ctime()
+        'last_updated' : int(time.time())
     }
     metadata_string = json.dumps(metadata_dict)
     with open(metadata_path, 'w') as outfile:
