@@ -24,15 +24,15 @@ def peers_db(db):
     return db
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def peer_models_path(tmp_path_factory):
     """List of various sample peers"""
     peer_models_path = tmp_path_factory.mktemp('peer_models')
 
     peers = {
-        'peer-1' : {"version": 1, "sample_size": 1000, "last_updated": 1657849384},
-        'peer-2' : {"version": 2, "sample_size": 150, "last_updated": 1657849323},
-        'peer-3' : {"version": 4, "sample_size": 1300, "last_updated": 1657844553},
+        'peer-1': {"version": 1, "sample_size": 1000, "last_updated": 1657849384},
+        'peer-2': {"version": 2, "sample_size": 150, "last_updated": 1657849323},
+        'peer-3': {"version": 4, "sample_size": 1300, "last_updated": 1657844553},
     }
 
     # construct the fs layout
