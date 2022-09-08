@@ -6,7 +6,7 @@ from pathlib import Path
 from sqlitedict import SqliteDict
 
 from model_manager.pytorch_model import config
-from model_manager.train import train
+from model_manager.train import TrainingLoop
 
 
 def create_default_db():
@@ -52,14 +52,20 @@ def create_peer_files(id: int, version: int, sample_size: int):
         config.METADATA_PATH = PEER_MODEL_PATH / METADATA_FILENAME
         config.PLOT_PATH = PEER_MODEL_PATH / Path('plot.png')
         config.NUMBER_OF_TRAIN_SAMPLES = sample_size
-        train(metadata_and_weights={}, config=config)
+        trainer = TrainingLoop(metadata_and_weights={}, config=config)
+        trainer.initialize_model()
+        trainer.prepare_data()
+        trainer.run_training()
 
 
 if __name__ == '__main__':
     create_default_db()
     # train base / local model if non already
     if not Path(config.MODEL_PATH).exists():
-        train(metadata_and_weights={}, config=config)
+        trainer = TrainingLoop(metadata_and_weights={}, config=config)
+        trainer.initialize_model()
+        trainer.prepare_data()
+        trainer.run_training()
     create_peer_files(id=1, version=1, sample_size=640)
     create_peer_files(id=2, version=1, sample_size=320)
     create_peer_files(id=3, version=1, sample_size=1280)
