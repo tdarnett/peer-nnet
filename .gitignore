@@ -21,7 +21,8 @@
 go.work
 
 peer-nnet
-
+peers/
+model/
 shared/
 peer_metadata.sqlite
 

@@ -1,6 +1,7 @@
 # import the necessary packages
-from torch.utils.data import Dataset
+import numpy as np
 from mlxtend.data import loadlocal_mnist
+from torch.utils.data import Dataset
 
 
 class ProcessedDataset(Dataset):
@@ -15,7 +16,10 @@ class ProcessedDataset(Dataset):
         """
         self.number_of_samples = number_of_samples
         # load the images and labels from disk
-        self.images, self.labels = loadlocal_mnist(images_path=images_path, labels_path=labels_path)
+        if images_path.name.split('.')[1] == 'npy':
+            self.images, self.labels = np.load(images_path), np.load(labels_path)
+        else:
+            self.images, self.labels = loadlocal_mnist(images_path=images_path, labels_path=labels_path)
         self.images, self.labels = self.images[:self.number_of_samples], self.labels[:self.number_of_samples]
 
     def __len__(self):
