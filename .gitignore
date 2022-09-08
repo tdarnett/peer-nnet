@@ -23,3 +23,14 @@ go.work
 peer-nnet
 
 peers/
+model/
+peer_metadata.sqlite
+
+# ignore vscode settings
+.vscode/
+
+# ignore notebooks
+*.ipynb
+
+# ignore any cache
+*__pycache__
