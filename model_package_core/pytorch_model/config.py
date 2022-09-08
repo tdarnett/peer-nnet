@@ -2,6 +2,7 @@
 
 # import packages
 import os
+from pathlib import Path
 
 import torch
 
@@ -49,6 +50,7 @@ SAMPLES_TO_PLOT = 5
 
 # define the path to the base output directory
 BASE_OUTPUT = 'model'
+os.makedirs(Path(BASE_OUTPUT), exist_ok=True)
 
 # define the path to the output serialized model, metadata and model training plot
 MODEL_PATH = os.path.join(BASE_OUTPUT, 'weights.h5')
