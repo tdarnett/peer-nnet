@@ -29,15 +29,15 @@ def peer_models_path(tmp_path_factory):
     """List of various sample peers"""
     peer_models_path = tmp_path_factory.mktemp('peer_models')
 
-    peers = [
-        {"version": 1, "sample_size": 1000, "last_updated": 1657849384},
-        {"version": 2, "sample_size": 150, "last_updated": 1657849323},
-        {"version": 4, "sample_size": 1300, "last_updated": 1657844553},
-    ]
+    peers = {
+        'peer-1' : {"version": 1, "sample_size": 1000, "last_updated": 1657849384},
+        'peer-2' : {"version": 2, "sample_size": 150, "last_updated": 1657849323},
+        'peer-3' : {"version": 4, "sample_size": 1300, "last_updated": 1657844553},
+    }
 
     # construct the fs layout
-    for idx, peer_metadata in enumerate(peers):
-        create_peer_dir(peer_id=f'peer-{idx}', peers_path=peer_models_path, peer_metadata=peer_metadata)
+    for peer_id, peer_metadata in peers.items():
+        create_peer_dir(peer_id=peer_id, peers_path=peer_models_path, peer_metadata=peer_metadata)
 
     return peer_models_path
 

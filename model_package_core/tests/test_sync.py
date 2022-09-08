@@ -54,6 +54,32 @@ def test_syncs_new_peer_added_to_db(db_with_peers, peer_models_path):
     assert db_with_peers[new_peer_id] == metadata
 
 
-def test_syncs_existing_peer_new_model_version_updates_db(peers_db, peer_models_path):
-    # TODO
-    pass
+def test_syncs_existing_peer_new_model_version_updates_db(db_with_peers, peer_models_path):
+    # GIVEN a sync to db with three peers
+    assert len(db_with_peers) == 3
+
+    # WHEN a peer is updated with a new model version
+    updated_peer_id = 'peer-2'
+    assert db_with_peers[updated_peer_id]["version"] == 2
+
+    # update metadata
+    metadata_file = peer_models_path / updated_peer_id / METADATA_FILENAME
+    with open(metadata_file, "r") as json_file:
+        metadata = json.load(json_file)
+
+    metadata["version"] = 3
+
+    with open(metadata_file, "w") as json_file:
+        json.dump(metadata, json_file)
+
+    # AND we sync the db
+    sync_commander = ModelMetadataSync(db=db_with_peers, peer_models=peer_models_path)
+    models_to_train = sync_commander._models_to_train()
+
+    # THEN models to train references the updated peer only
+    assert len(models_to_train) == 1
+    assert updated_peer_id in models_to_train
+
+    # AND the db also references the updated peer
+    assert len(db_with_peers) == 3
+    assert db_with_peers[updated_peer_id] == metadata
