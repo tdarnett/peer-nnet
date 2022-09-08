@@ -1,0 +1,15 @@
+name: peer-nn-env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - pip==22.2.2
+  - python==3.8
+  - pip:
+    - torch==1.12.1
+    - torchvision==0.13.1
+    - tqdm==4.64.0
+    - matplotlib==3.5.2
+    - scikit-learn==1.1.2
+    - mlxtend==0.20.0
+    - sqlitedict==2.0.0
