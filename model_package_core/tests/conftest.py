@@ -4,6 +4,7 @@ import pytest
 from sqlitedict import SqliteDict
 
 from model_package_core.constants import METADATA_FILENAME, WEIGHT_FILENAME
+from model_package_core.sync import ModelMetadataSync
 
 
 @pytest.fixture()
@@ -36,16 +37,29 @@ def peer_models_path(tmp_path_factory):
 
     # construct the fs layout
     for idx, peer_metadata in enumerate(peers):
-        peer_path = peer_models_path / f'peer-{idx}'
-        peer_path.mkdir()
-
-        # save metadata as json file
-        metadata_file = peer_path / METADATA_FILENAME
-        with open(metadata_file, 'w') as outfile:
-            outfile.write(json.dumps(peer_metadata))
-
-        # create empty weights file
-        weights_file = peer_path / WEIGHT_FILENAME
-        weights_file.touch()
+        create_peer_dir(peer_id=f'peer-{idx}', peers_path=peer_models_path, peer_metadata=peer_metadata)
 
     return peer_models_path
+
+
+@pytest.fixture(scope='function')
+def db_with_peers(peers_db, peer_models_path):
+    sync_commander = ModelMetadataSync(db=peers_db, peer_models=peer_models_path)
+    # calculate models to train on peers path to populate db
+    sync_commander._models_to_train()
+
+    return peers_db
+
+
+def create_peer_dir(peer_id: str, peers_path, peer_metadata: dict[str, int]):
+    peer_path = peers_path / peer_id
+    peer_path.mkdir()
+
+    # save metadata as json file
+    metadata_file = peer_path / METADATA_FILENAME
+    with open(metadata_file, 'w') as outfile:
+        outfile.write(json.dumps(peer_metadata))
+
+    # create empty weights file
+    weights_file = peer_path / WEIGHT_FILENAME
+    weights_file.touch()
