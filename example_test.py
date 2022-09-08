@@ -14,9 +14,9 @@ def create_default_db():
     db = SqliteDict('peer_metadata.sqlite')
 
     # add database elements
-    db['peer_1'] = {'version': 1, 'sample_size': 640, 'last_updated': 'Thu Aug 25 21:39:49 2022'}
-    db['peer_2'] = {'version': 1, 'sample_size': 320, 'last_updated': 'Fri Aug 26 20:30:00 2022'}
-    db['peer_3'] = {'version': 2, 'sample_size': 1280, 'last_updated': 'Thu Aug 25 22:37:16 2022'}
+    db['peer_1'] = {'version': 1, 'sample_size': 640, 'last_updated': 1661477989}
+    db['peer_2'] = {'version': 1, 'sample_size': 320, 'last_updated': 1661560200}
+    db['peer_3'] = {'version': 2, 'sample_size': 1280, 'last_updated': 1661481436}
 
     # commit to save the objects
     db.commit()
@@ -40,7 +40,7 @@ def create_peer_files(id: int, version: int, sample_size: int):
         metadata = {
             'version': version,
             'sample_size': sample_size,
-            'last_updated': time.ctime()
+            'last_updated': int(time.time())
         }
         metadata_string = json.dumps(metadata)
         with open(PEER_MODEL_PATH / METADATA_FILENAME, 'w') as outfile:
