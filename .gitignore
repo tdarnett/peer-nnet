@@ -34,3 +34,4 @@ peer_metadata.sqlite
 
 # ignore any cache
 *__pycache__
+.pytest_cache
