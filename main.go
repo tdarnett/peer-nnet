@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -35,7 +36,7 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// TODO validate shared filesystem directories are set
+	initSharedFilesystem()
 
 	h, err := NewHost(ctx, config.Seed, config.Port)
 	if err != nil {
@@ -54,7 +55,7 @@ func main() {
 	}
 
 	// connect to database
-	db, err:= InitStore(h.ID().Pretty())
+	db, err := InitStore(h.ID().Pretty())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -86,6 +87,26 @@ func run(h host.Host, cancel func()) {
 		panic(err)
 	}
 	os.Exit(0)
+}
+
+func initSharedFilesystem() {
+	// validate host model information exists
+	_, err := os.Stat(HOST_MODEL_WEIGHTS_PATH)
+	if err != nil {
+		log.Fatal("Failed to locate host model weights file", err)
+	}
+	_, err = os.Stat(HOST_MODEL_METADATA_PATH)
+	if err != nil {
+		log.Fatal("Failed to locate host metadata file", err)
+	}
+
+	// create peer models directory
+	peerModelsDir := filepath.Join(".", PEERS_MODELS_DIR)
+	err = MkDir(peerModelsDir)
+	if err != nil {
+		log.Fatal("Failed to create peers directory", err)
+	}
+
 }
 
 type addrList []multiaddr.Multiaddr
