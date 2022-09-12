@@ -3,7 +3,7 @@ from pathlib import Path
 
 from sqlitedict import SqliteDict
 
-from model_package_core.constants import WEIGHT_FILENAME, PEER_MODEL_PATH, METADATA_FILENAME
+from model_manager.constants import WEIGHT_FILENAME, PEER_MODEL_PATH, METADATA_FILENAME
 
 
 class ModelMetadataSync:
@@ -25,7 +25,7 @@ class ModelMetadataSync:
     def run(self):
         models_to_train = self._models_to_train()
         if models_to_train:
-            from model_package_core.train import train
+            from model_manager.train import train
             from pytorch_model import config
 
             train(metadata_and_weights=models_to_train, config=config)
@@ -58,4 +58,3 @@ class ModelMetadataSync:
                 )
 
         return models_to_train
-

@@ -3,8 +3,8 @@ import json
 import pytest
 from sqlitedict import SqliteDict
 
-from model_package_core.constants import METADATA_FILENAME, WEIGHT_FILENAME
-from model_package_core.sync import ModelMetadataSync
+from model_manager.constants import METADATA_FILENAME, WEIGHT_FILENAME
+from model_manager.sync import ModelMetadataSync
 
 
 @pytest.fixture()
