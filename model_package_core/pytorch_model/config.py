@@ -10,12 +10,16 @@ import torch
 DATA_PATH = os.path.join('model_package_core', 'data')
 
 # train data path
-TRAIN_IMAGE_DATA_PATH = os.path.join(DATA_PATH, 'train/MNIST/raw/train-images-idx3-ubyte')
-TRAIN_LABEL_DATA_PATH = os.path.join(DATA_PATH, 'train/MNIST/raw/train-labels-idx1-ubyte')
+TRAIN_IMAGE_DATA_PATH = os.path.join(
+    DATA_PATH, 'train/MNIST/raw/train-images-idx3-ubyte')
+TRAIN_LABEL_DATA_PATH = os.path.join(
+    DATA_PATH, 'train/MNIST/raw/train-labels-idx1-ubyte')
 
 # test data path
-TEST_IMAGE_DATA_PATH = os.path.join(DATA_PATH, 'test/MNIST/raw/t10k-images-idx3-ubyte')
-TEST_LABEL_DATA_PATH = os.path.join(DATA_PATH, 'test/MNIST/raw/t10k-labels-idx1-ubyte')
+TEST_IMAGE_DATA_PATH = os.path.join(
+    DATA_PATH, 'test/MNIST/raw/t10k-images-idx3-ubyte')
+TEST_LABEL_DATA_PATH = os.path.join(
+    DATA_PATH, 'test/MNIST/raw/t10k-labels-idx1-ubyte')
 
 # define the number of samples to use
 NUMBER_OF_TRAIN_SAMPLES = 320
@@ -49,7 +53,7 @@ MIN_DELTA = 0.1
 SAMPLES_TO_PLOT = 5
 
 # define the path to the base output directory
-BASE_OUTPUT = 'model'
+BASE_OUTPUT = 'shared/model'
 os.makedirs(Path(BASE_OUTPUT), exist_ok=True)
 
 # define the path to the output serialized model, metadata and model training plot
