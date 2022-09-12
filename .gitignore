@@ -24,6 +24,7 @@ peer-nnet
 
 peers/
 model/
+database/
 peer_metadata.sqlite
 
 # ignore vscode settings

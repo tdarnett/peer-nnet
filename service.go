@@ -107,7 +107,6 @@ func (s *Service) RequestVersions() {
 // Function triggered from inbound model version request
 func (s *Service) ReceiveRequestVersion(requestContext ModelVersionContext) ModelVersionContext {
 	// Currently we do not read incoming request contents
-	// TODO read model metadata from model/ path that the ml model training process is writing to
 	currentModel, err := s.getModel()
 	if err != nil {
 		log.Fatal(err)
@@ -141,8 +140,8 @@ func (s *Service) RequestModelWeights(peers peer.IDSlice) {
 			continue
 		}
 		peerResponse := replies[i]
-		// create peer directory
-		peerDir := filepath.Join(".", PEER_MODELS_DIR, peerID)
+		// initialize peer in tracked peers dir
+		peerDir := filepath.Join(PEERS_MODELS_DIR, peerID)
 		MkDir(peerDir)
 		if err != nil {
 			fmt.Printf("error creating peer directory\n")
@@ -150,14 +149,14 @@ func (s *Service) RequestModelWeights(peers peer.IDSlice) {
 		}
 
 		// create filepath for peer weights
-		weightsFilepath := filepath.Join(peerDir, "weights.h5")
+		weightsFilepath := filepath.Join(peerDir, WEIGHTS_FILENAME)
 		err = WriteFile(weightsFilepath, peerResponse.Weights)
 		if err != nil {
 			fmt.Printf("unexpected file error: %s\n", err) // fail silently
 			continue
 		}
 		// create filepath for peer model metadata
-		metadataFilepath := filepath.Join(peerDir, "metadata.json")
+		metadataFilepath := filepath.Join(peerDir, METADATA_FILENAME)
 		content, err := json.Marshal(peerResponse.Model)
 		if err != nil {
 			fmt.Println(err)
@@ -177,10 +176,9 @@ func (s *Service) RequestModelWeights(peers peer.IDSlice) {
 // Assumes no bad actors.
 func (s *Service) ReceiveRequestModelWeight(requestContext ModelWeightsContext) ModelWeightsContext {
 	// read weights from file and serialize into context struct
-	weightFile := filepath.Join(".", "model", "weights.h5")
-	data, err := os.ReadFile(weightFile)
+	data, err := os.ReadFile(HOST_MODEL_WEIGHTS_PATH)
 	if err != nil {
-		log.Fatalf("unable to read model weight file %s: %s", weightFile, err)
+		log.Fatalf("unable to read model weight file %s: %s", HOST_MODEL_WEIGHTS_PATH, err)
 	}
 	currentModel, err := s.getModel()
 	if err != nil {
@@ -223,8 +221,7 @@ func (s *Service) updatePeerModel(peerID string, model NeuralNet) error {
 // Fetches and returns a hosts own model metadata from disk
 func (s *Service) getModel() (*NeuralNet, error) {
 	currentModel := NeuralNet{}
-	metadataFile := filepath.Join(".", "model", "metadata.json")
-	file, err := ioutil.ReadFile(metadataFile)
+	file, err := ioutil.ReadFile(HOST_MODEL_METADATA_PATH)
 
 	if err != nil {
 		return nil, err
