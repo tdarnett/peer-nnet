@@ -5,8 +5,8 @@ from pathlib import Path
 
 from sqlitedict import SqliteDict
 
-from model_package_core.pytorch_model import config
-from model_package_core.train import train
+from model_manager.pytorch_model import config
+from model_manager.train import train
 
 
 def create_default_db():
