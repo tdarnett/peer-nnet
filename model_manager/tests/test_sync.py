@@ -1,8 +1,8 @@
 import json
 
-from model_package_core.constants import METADATA_FILENAME, WEIGHT_FILENAME
-from model_package_core.sync import ModelMetadataSync
-from model_package_core.tests.conftest import create_peer_dir
+from model_manager.constants import METADATA_FILENAME, WEIGHT_FILENAME
+from model_manager.sync import ModelMetadataSync
+from model_manager.tests.conftest import create_peer_dir
 
 
 def test_new_db_syncs_all_peers(peers_db, peer_models_path):
@@ -10,7 +10,8 @@ def test_new_db_syncs_all_peers(peers_db, peer_models_path):
     assert len(peers_db) == 0
 
     # WHEN we generate the models to train
-    sync_commander = ModelMetadataSync(db=peers_db, peer_models=peer_models_path)
+    sync_commander = ModelMetadataSync(
+        db=peers_db, peer_models=peer_models_path)
     models_to_train = sync_commander._models_to_train()
 
     # THEN
@@ -26,7 +27,8 @@ def test_new_db_syncs_all_peers(peers_db, peer_models_path):
 
         # AND the models to train should have the correct data
         assert peers_db[peer_id]['sample_size'] == models_to_train[peer_id]['number_of_samples']
-        assert models_to_train[peer_id]['weights'] == peer_path / WEIGHT_FILENAME
+        assert models_to_train[peer_id]['weights'] == peer_path / \
+            WEIGHT_FILENAME
 
     # AND the models to train dict and DB has all the new peers
     assert len(models_to_train) == len(peers_in_peer_path) == len(peers_db)
@@ -39,9 +41,11 @@ def test_syncs_new_peer_added_to_db(db_with_peers, peer_models_path):
     # WHEN a new peer is added
     new_peer_id = 'test_new_peer'
     metadata = {"version": 1, "sample_size": 10, "last_updated": 1657843681}
-    create_peer_dir(peer_id=new_peer_id, peer_metadata=metadata, peers_path=peer_models_path)
+    create_peer_dir(peer_id=new_peer_id, peer_metadata=metadata,
+                    peers_path=peer_models_path)
     # AND we sync the db
-    sync_commander = ModelMetadataSync(db=db_with_peers, peer_models=peer_models_path)
+    sync_commander = ModelMetadataSync(
+        db=db_with_peers, peer_models=peer_models_path)
     models_to_train = sync_commander._models_to_train()
 
     # THEN models to train references the new peer only
@@ -73,7 +77,8 @@ def test_syncs_existing_peer_new_model_version_updates_db(db_with_peers, peer_mo
         json.dump(metadata, json_file)
 
     # AND we sync the db
-    sync_commander = ModelMetadataSync(db=db_with_peers, peer_models=peer_models_path)
+    sync_commander = ModelMetadataSync(
+        db=db_with_peers, peer_models=peer_models_path)
     models_to_train = sync_commander._models_to_train()
 
     # THEN models to train references the updated peer only
