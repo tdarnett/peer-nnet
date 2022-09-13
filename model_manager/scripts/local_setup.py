@@ -11,7 +11,7 @@ from model_manager.train import train
 
 def create_default_db():
     # initialize DB
-    db = SqliteDict('../../peer_metadata.sqlite')
+    db = SqliteDict('../peer_metadata.sqlite')
 
     # add database elements
     db['peer_1'] = {'version': 1, 'sample_size': 640, 'last_updated': 1661477989}
