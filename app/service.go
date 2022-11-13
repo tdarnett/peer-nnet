@@ -119,7 +119,7 @@ func (s *Service) ReceiveRequestVersion(requestContext ModelVersionContext) Mode
 }
 
 func (s *Service) RequestModelWeights(peers peer.IDSlice) {
-	fmt.Printf("Requesting model weights...")
+	fmt.Printf("Requesting model weights...\n")
 	var replies = make([]*ModelWeightsContext, len(peers))
 
 	// Multicall will send out the requests AND stream replies
@@ -167,7 +167,7 @@ func (s *Service) RequestModelWeights(peers peer.IDSlice) {
 			continue
 		}
 
-		fmt.Printf("Peer %s sent their weights. They were saved to: %s\n", peerID, peerDir)
+		fmt.Printf("Peer %s sent their weights.\n", peerID)
 	}
 }
 
@@ -203,8 +203,6 @@ func (s *Service) isNewPeerModelVersion(peerID string, incomingVersion int) (boo
 	if found {
 		isNew = peerModel.Version < incomingVersion
 	}
-
-	fmt.Printf("Peer: %s. IsNew: %t\n", peerID, isNew) // TODO remove
 
 	return isNew, nil
 }
