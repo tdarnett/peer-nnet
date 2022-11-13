@@ -1,0 +1,30 @@
+version: '3.5'
+services:
+  host:
+    environment:
+      - SERVICE_NAME=host
+    build:
+      dockerfile: Dockerfile.host
+    container_name: nnet-host
+    ports:
+      - 6000
+    volumes:
+      - ./docker/host/model:/model:ro
+      - ./docker/host/peers:/peers
+      - ./docker/host/db:/db
+  peer1:
+    environment:
+      - SERVICE_NAME=peer1
+    build:
+      dockerfile: Dockerfile.peer1
+    container_name: nnet-peer1
+    ports:
+      - 6000
+    volumes:
+      - ./docker/peer1/model:/model:ro
+      - ./docker/peer1/peers:/peers
+      - ./docker/peer1/db:/db
+networks:
+  default:
+    name: p2p-test
+    external: true
