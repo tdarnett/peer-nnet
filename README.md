@@ -30,18 +30,15 @@ The training algorithm used is directly copied from the [BrainTorrent][] paper:
 
 ## To run
 
-The current implentation will not do automatic peer discovery. As such, you must specify the boostrap node ID when booting up a new node.
+The easiest way to run the network with multiple peers is to use the docker compose configuration. This will create a network of two nodes.
 
 ```bash
-$ go run .
-$ # Copy multi-address, and open a second terminal
-$ go run . -peer [peer address]
+docker compose up
 ```
 
 ## Coming soon
 
 - Enable automatic peer discovery using a rendevous point
-- Dockerized application
 - [Collect peer churn data](https://github.com/willscott/ipfs-counter/blob/willscott/churn/main.go) to inform remediation approaches
 - lots more...
 

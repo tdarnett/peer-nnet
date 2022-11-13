@@ -26,5 +26,4 @@ services:
       - ./docker/peer1/db:/db
 networks:
   default:
-    name: p2p-test
-    external: true
+    name: peer-nnet
