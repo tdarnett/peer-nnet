@@ -11,6 +11,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/joho/godotenv"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/multiformats/go-multiaddr"
@@ -25,6 +26,8 @@ type Config struct {
 }
 
 func main() {
+	err := godotenv.Load()
+
 	config := Config{}
 
 	flag.StringVar(&config.Rendezvous, "rendezvous", "nnet/echo", "")
