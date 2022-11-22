@@ -14,7 +14,7 @@ func InitStore(hostID string) (gokv.Store, error) {
 		return nil, err
 	}
 
-	dbPath := fmt.Sprintf("%s/%s.db", DB_DIR, hostID)
+	dbPath := fmt.Sprintf("%s/peers.db", DB_DIR)
 	dbOptions := bbolt.Options{
 		BucketName: "default",
 		Path:       dbPath,
