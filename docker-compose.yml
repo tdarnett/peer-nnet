@@ -24,6 +24,18 @@ services:
       - ./docker/peer1/model:/model:ro
       - ./docker/peer1/peers:/peers
       - ./docker/peer1/db:/db
+  peer2:
+    environment:
+      - SERVICE_NAME=peer2
+    build:
+      dockerfile: Dockerfile.peer2
+    container_name: nnet-peer2
+    ports:
+      - 6000
+    volumes:
+      - ./docker/peer2/model:/model:ro
+      - ./docker/peer2/peers:/peers
+      - ./docker/peer2/db:/db
 networks:
   default:
     name: peer-nnet
