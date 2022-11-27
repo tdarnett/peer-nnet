@@ -1,0 +1,5 @@
+git lfs track "t10k-images-idx3-ubyte"
+git lfs track "t10k-labels-idx1-ubyte"
+git lfs track "train-images-idx3-ubyte"
+git lfs track "train-labels-idx1-ubyte"
+git lfs track "*.png"
