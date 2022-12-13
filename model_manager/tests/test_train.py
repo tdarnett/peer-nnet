@@ -2,17 +2,15 @@ import json
 from pathlib import Path
 
 import numpy as np
-import torch
-from model_manager.constants import (METADATA_FILENAME, TRAIN_IMAGE_DATA_PATH,
-                                     TRAIN_LABEL_DATA_PATH, WEIGHT_FILENAME)
+from model_manager.constants import METADATA_FILENAME, WEIGHT_FILENAME
 from model_manager.pytorch_model import config
 from model_manager.train import TrainingLoop
 
 
-def test_prepare_data_functionality():
+def test_prepare_data_functionality(train_label_path, train_image_path):
     # GIVEN a local model to train with updated config
-    config.TRAIN_LABEL_DATA_PATH = TRAIN_LABEL_DATA_PATH
-    config.TRAIN_IMAGE_DATA_PATH = TRAIN_IMAGE_DATA_PATH
+    config.TRAIN_LABEL_DATA_PATH = train_label_path
+    config.TRAIN_IMAGE_DATA_PATH = train_image_path
     config.NUMBER_OF_TRAIN_SAMPLES = 80
     config.BATCH_SIZE = 16
 
@@ -66,13 +64,13 @@ def test_save_metadata_functionality(local_model_path):
     assert metadata['sample_size'] == number_of_training_samples
 
 
-def test_train_process(local_model_path):
+def test_train_process(local_model_path, train_label_path, train_image_path):
     # GIVEN a local model to train with updated config
     config.MODEL_PATH = local_model_path / WEIGHT_FILENAME
     config.METADATA_PATH = local_model_path/ METADATA_FILENAME
     config.PLOT_PATH = local_model_path / Path('plot.png')
-    config.TRAIN_LABEL_DATA_PATH = TRAIN_LABEL_DATA_PATH
-    config.TRAIN_IMAGE_DATA_PATH = TRAIN_IMAGE_DATA_PATH
+    config.TRAIN_LABEL_DATA_PATH = train_label_path
+    config.TRAIN_IMAGE_DATA_PATH = train_image_path
     config.NUMBER_OF_TRAIN_SAMPLES = 80
     config.NUM_EPOCHS = 1
     config.BATCH_SIZE = 16
