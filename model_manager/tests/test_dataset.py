@@ -1,20 +1,18 @@
-from model_manager.constants import (TRAIN_IMAGE_DATA_PATH,
-                                          TRAIN_LABEL_DATA_PATH)
 from model_manager.pytorch_model.dataset import ProcessedDataset
 
 
-def test_dataset_normalizes_training_data_samples():
+def test_dataset_normalizes_training_data_samples(train_label_path, train_image_path):
     # GIVEN a path to raw training data images and labels
     # and a specified number of training samples
     from pathlib import PosixPath
-    assert type(TRAIN_IMAGE_DATA_PATH) == PosixPath
-    assert type(TRAIN_LABEL_DATA_PATH) == PosixPath
+    assert type(train_label_path) == PosixPath
+    assert type(train_image_path) == PosixPath
     number_of_samples = 320
 
     # WHEN a new ProcessedDataset is created
     dataset = ProcessedDataset(
-        TRAIN_IMAGE_DATA_PATH,
-        TRAIN_LABEL_DATA_PATH,
+        train_image_path,
+        train_label_path,
         number_of_samples
     )
 
