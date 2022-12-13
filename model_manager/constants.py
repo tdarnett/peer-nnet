@@ -1,3 +1,8 @@
+"""
+Constants specific to *running* the model manager.
+
+Any model configuration settings should live in the pytorch config.py!
+"""
 from pathlib import Path
 
 PEER_MODEL_PATH = Path('.', 'shared', 'peers', 'models')

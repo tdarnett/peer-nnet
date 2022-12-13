@@ -30,7 +30,7 @@ class ModelMetadataSync:
 
             train(metadata_and_weights=models_to_train, config=config)
 
-    def _models_to_train(self) -> dict[str, dict]:
+    def _models_to_train(self) -> dict:
         """
         Generates a mapping of peer ID and it's model weights and metadata, for any new peer model
         version.
