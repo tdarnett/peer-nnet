@@ -22,7 +22,7 @@ def test_dataset_normalizes_training_data_samples():
     assert len(dataset) == number_of_samples
 
     # AND each sample has been normalized to 0 - 1
-    # NOTE: this assertion is specific to the problem at hand i.e. image classification
+    # NOTE - this assertion is specific to the problem at hand i.e. image classification
     sample, _ = dataset[0]
     assert all(idx >= 0. for idx in sample)
     assert all(idx <= 1. for idx in sample)
