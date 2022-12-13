@@ -30,7 +30,7 @@ The training algorithm used is directly copied from the [BrainTorrent][] paper:
 
 ## To run
 
-The easiest way to run the network with multiple peers is to use the docker compose configuration. This will create a network of two nodes.
+The easiest way to run the network with multiple peers is to use the docker compose configuration. This will create a network of three nodes.
 
 ```bash
 docker compose up
