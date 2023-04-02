@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/host"
@@ -148,6 +147,7 @@ func (s *P2PService) RequestModelWeights(peers peer.IDSlice) {
 
 	// parse the replies
 	for i, err := range errs {
+		PeerConfig := NewPeerConfig(peers[i])
 		peerID := peers[i].Pretty()
 		if err != nil {
 			fmt.Printf("Peer %s returned error: %-v\n", peerID, err)
@@ -157,25 +157,22 @@ func (s *P2PService) RequestModelWeights(peers peer.IDSlice) {
 		response := replies[i]
 
 		// Create a directory to store the weights received from the peer
-		peerDir := filepath.Join(PEERS_MODELS_DIR, peerID)
-		if err := os.MkdirAll(peerDir, os.ModePerm); err != nil {
+		if err := os.MkdirAll(PeerConfig.PeerDir, os.ModePerm); err != nil {
 			log.Printf("Error creating directory for peer %s\n", peerID)
 			continue
 		}
 
 		// Save the weights received from the peer to a file
-		weightsFilepath := filepath.Join(peerDir, WEIGHTS_FILENAME)
-		if err := WriteFile(weightsFilepath, response.Weights); err != nil {
+		if err := WriteFile(PeerConfig.WeightsDir, response.Weights); err != nil {
 			log.Printf("unexpected file error: %s\n", err) // fail silently
 			continue
 		}
 		// create filepath for peer model metadata
-		metadataFilepath := filepath.Join(peerDir, METADATA_FILENAME)
 		content, err := json.Marshal(response.Model)
 		if err != nil {
 			log.Printf("Error marshaling metadata from peer %s: %s\n", peerID, err)
 		}
-		if err := WriteFile(metadataFilepath, content); err != nil {
+		if err := WriteFile(PeerConfig.MetadataDir, content); err != nil {
 			log.Printf("Unexpected file error saving metadata from peer %s: %s\n", peerID, err)
 			continue
 		}

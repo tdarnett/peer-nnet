@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -112,8 +111,7 @@ func initSharedFilesystem() {
 	}
 
 	// Create peer models directory
-	peerModelsDir := filepath.Join(".", PEERS_MODELS_DIR)
-	if err := os.MkdirAll(peerModelsDir, os.ModePerm); err != nil {
+	if err := os.MkdirAll(PEERS_MODELS_DIR, os.ModePerm); err != nil {
 		log.Fatalf("Failed to create peers directory: %v", err)
 	}
 }
