@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/philippgille/gokv"
 	"github.com/philippgille/gokv/bbolt"
@@ -9,8 +10,7 @@ import (
 )
 
 func InitStore(hostID string) (gokv.Store, error) {
-	err := MkDir(DB_DIR)
-	if err != nil {
+	if err := os.MkdirAll(DB_DIR, os.ModePerm); err != nil {
 		return nil, err
 	}
 

@@ -70,7 +70,7 @@ func main() {
 	}
 	defer db.Close()
 
-	service := NewService(h, protocol.ID(config.ProtocolID), db)
+	service := NewP2PService(h, protocol.ID(config.ProtocolID), db)
 	err = service.SetupRPC()
 	if err != nil {
 		log.Fatalf("Error setting up RPC: %v", err)
