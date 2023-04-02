@@ -17,7 +17,7 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
-type Config struct {
+type AppConfig struct {
 	Port           int
 	ProtocolID     string
 	Rendezvous     string
@@ -26,24 +26,30 @@ type Config struct {
 }
 
 func main() {
+	// Load environment variables from .env file
 	err := godotenv.Load()
+	if err != nil {
+		log.Printf("Error loading .env file: %v", err)
+	}
 
-	config := Config{}
+	config := AppConfig{}
 
-	flag.StringVar(&config.Rendezvous, "rendezvous", "nnet/echo", "")
+	// Define command line flags
+	flag.StringVar(&config.Rendezvous, "rendezvous", "nnet/echo", "Rendezvous string for peer discovery")
 	flag.Int64Var(&config.Seed, "seed", 0, "Seed value for generating a PeerID, 0 is random")
 	flag.Var(&config.DiscoveryPeers, "peer", "Peer multiaddress for peer discovery")
-	flag.StringVar(&config.ProtocolID, "protocolid", "/p2p/rpc/nnet", "")
-	flag.IntVar(&config.Port, "port", 0, "")
+	flag.StringVar(&config.ProtocolID, "protocolid", "/p2p/rpc/nnet", "Protocol ID for communication between peers")
+	flag.IntVar(&config.Port, "port", 0, "Port number to listen on")
 	flag.Parse()
 
 	ctx, cancel := context.WithCancel(context.Background())
 
+	// Initialize shared filesystem
 	initSharedFilesystem()
 
 	h, err := NewHost(ctx, config.Seed, config.Port)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Error creating host: %v", err)
 	}
 
 	log.Printf("Host ID: %s", h.ID().Pretty())
@@ -54,29 +60,32 @@ func main() {
 
 	dht, err := NewDHT(ctx, h, config.DiscoveryPeers)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Error creating DHT: %v", err)
 	}
 
 	// connect to database
 	db, err := InitStore(h.ID().Pretty())
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Error initializing store: %v", err)
 	}
 	defer db.Close()
 
 	service := NewService(h, protocol.ID(config.ProtocolID), db)
 	err = service.SetupRPC()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Error setting up RPC: %v", err)
 	}
 
+	// Start discovery and messaging services
 	go Discover(ctx, h, dht, config.Rendezvous)
 	go service.StartMessaging(ctx)
 
-	run(h, cancel)
+	// Wait for termination signal and perform cleanup
+	waitForTermination(h, cancel)
 }
 
-func run(h host.Host, cancel func()) {
+// waitForTermination waits for a termination signal, then cancels the context, closes the host, and exits the program.
+func waitForTermination(h host.Host, cancel func()) {
 	c := make(chan os.Signal, 1)
 
 	signal.Notify(c, os.Interrupt, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
@@ -93,23 +102,20 @@ func run(h host.Host, cancel func()) {
 }
 
 func initSharedFilesystem() {
-	// validate host model information exists
-	_, err := os.Stat(HOST_MODEL_WEIGHTS_PATH)
-	if err != nil {
-		log.Fatal("Failed to locate host model weights file", err)
-	}
-	_, err = os.Stat(HOST_MODEL_METADATA_PATH)
-	if err != nil {
-		log.Fatal("Failed to locate host metadata file", err)
+	// Validate host model information exists
+	if err := checkFileExists(HOST_MODEL_WEIGHTS_PATH); err != nil {
+		log.Fatalf("Failed to locate host model weights file: %v", err)
 	}
 
-	// create peer models directory
+	if err := checkFileExists(HOST_MODEL_METADATA_PATH); err != nil {
+		log.Fatalf("Failed to locate host metadata file: %v", err)
+	}
+
+	// Create peer models directory
 	peerModelsDir := filepath.Join(".", PEERS_MODELS_DIR)
-	err = MkDir(peerModelsDir)
-	if err != nil {
-		log.Fatal("Failed to create peers directory", err)
+	if err := os.MkdirAll(peerModelsDir, os.ModePerm); err != nil {
+		log.Fatalf("Failed to create peers directory: %v", err)
 	}
-
 }
 
 type addrList []multiaddr.Multiaddr
@@ -125,7 +131,7 @@ func (al *addrList) String() string {
 func (al *addrList) Set(value string) error {
 	addr, err := multiaddr.NewMultiaddr(value)
 	if err != nil {
-		return err
+		return fmt.Errorf("error parsing multiaddress: %v", err)
 	}
 	*al = append(*al, addr)
 	return nil
