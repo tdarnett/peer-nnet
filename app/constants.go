@@ -2,20 +2,25 @@ package main
 
 import "os"
 
-func GetOrDefaultEnv(key string, fallback string) string {
-	v := os.Getenv(key)
-	if len(v) == 0 {
-		return fallback
+func GetEnvOrDefault(key, fallback string) string {
+	if v, ok := os.LookupEnv(key); ok {
+		return v
 	}
-	return v
+	return fallback
 }
 
-const WEIGHTS_FILENAME = "weights.h5"     // must be in sync with model manager weights filename constant!
-const METADATA_FILENAME = "metadata.json" // must be in sync with model manager metadata filename constant!
+const (
+	WEIGHTS_FILENAME  = "weights.h5"    // must be in sync with model manager weights filename constant!
+	METADATA_FILENAME = "metadata.json" // must be in sync with model manager metadata filename constant!
+)
 
-var HOST_MODEL_WEIGHTS_PATH = GetOrDefaultEnv("HOST_MODEL_WEIGHTS_PATH", "/model/"+WEIGHTS_FILENAME)
-var HOST_MODEL_METADATA_PATH = GetOrDefaultEnv("HOST_MODEL_METADATA_PATH", "/model/"+METADATA_FILENAME)
+const (
+	hostModelDir = "/model/"
+	peerModelDir = "/peers/"
+	defaultDbDir = "db/"
+)
 
-var PEERS_MODELS_DIR = GetOrDefaultEnv("PEERS_MODELS_DIR", "/peers/")
-
-var DB_DIR = GetOrDefaultEnv("DB_DIR", "db/")
+var HOST_MODEL_WEIGHTS_PATH = GetEnvOrDefault("HOST_MODEL_WEIGHTS_PATH", hostModelDir+WEIGHTS_FILENAME)
+var HOST_MODEL_METADATA_PATH = GetEnvOrDefault("HOST_MODEL_METADATA_PATH", hostModelDir+METADATA_FILENAME)
+var PEERS_MODELS_DIR = GetEnvOrDefault("PEERS_MODELS_DIR", peerModelDir)
+var DB_DIR = GetEnvOrDefault("DB_DIR", defaultDbDir)
