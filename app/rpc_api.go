@@ -11,7 +11,7 @@ const (
 )
 
 type NNetRPCAPI struct {
-	service *Service
+	service *P2PService
 }
 
 type ModelVersionContext struct {
