@@ -36,10 +36,13 @@ The easiest way to run the network with multiple peers is to use the docker comp
 docker compose up
 ```
 
+![network-activity](./assets/network-activity.png)
+
+
 ## Coming soon
 
 - Enable automatic peer discovery using a rendevous point
 - [Collect peer churn data](https://github.com/willscott/ipfs-counter/blob/willscott/churn/main.go) to inform remediation approaches
-- lots more...
+- ...
 
 [braintorrent]: https://arxiv.org/pdf/1905.06731.pdf

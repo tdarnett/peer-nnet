@@ -97,7 +97,7 @@ func (s *P2PService) updateStoreWithNewVersions(peers peer.IDSlice, errs []error
 			log.Printf("Peer %s returned error: %-v\n", peers[i].Pretty(), err)
 		} else {
 			incomingPeerModel := replies[i].Model
-			log.Printf("Peer %s echoed: %+v\n", peerID, replies[i].Model)
+			// log.Printf("Peer %s echoed: %+v\n", peerID, replies[i].Model)
 
 			// Compare received version against the service's internal version
 			isNewVersion, err := s.isNewPeerModelVersion(peerID, incomingPeerModel.Version)
@@ -105,7 +105,7 @@ func (s *P2PService) updateStoreWithNewVersions(peers peer.IDSlice, errs []error
 				log.Print(err) // Log the failure but don't suspend execution
 			}
 			if isNewVersion {
-				log.Printf("Found new version for Peer: %s\n", peerID)
+				log.Printf("Found new version for Peer %s: (Version: %d, Updated: %d)\n", peerID, incomingPeerModel.Version, incomingPeerModel.LastUpdated)
 				peersWithNewVersions = append(peersWithNewVersions, peers[i])
 				s.updatePeerModel(peerID, incomingPeerModel)
 			}

@@ -20,4 +20,4 @@ WORKDIR /
 
 COPY --from=builder /docker-p2p-test .
 
-CMD [ "./docker-p2p-test", "-port", "6000", "-peer", "/dns4/host/tcp/6000/p2p/QmcMEhoGw96nxRznstN8sQZGDT4rJxwh7nxCba6U1pQye1", "-seed", "989"]
+CMD [ "./docker-p2p-test", "-port", "6000", "-peer", "/dns4/host/tcp/6000/p2p/QmNX6ASyukLch38D2Z1h4cMh39ATfqqDom1xJWv2YHc1eG", "-seed", "989"]
